@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Create Shift – ShiftSwap Manager</title>
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+  <!-- Top bar: page title and the notifications bell (Bikram's page) -->
+  <header class="top-bar">
+    <h1>Create Shift</h1>
+    <a href="../notifications.html" title="Notifications">🔔</a>
+  </header>
+
+  <!-- Manager tabs: phone = bottom bar, laptop = under the header -->
+  <nav class="tab-bar">
+    <a href="dashboard.html"><span>🏠</span>Dashboard</a>
+    <a href="rota.html"><span>📅</span>Rota</a>
+    <a href="swaps.html"><span>✅</span>Approvals</a>
+    <a href="staff.html"><span>👥</span>Staff</a>
+  </nav>
+
+  <main class="page">
+    <div id="message" hidden></div>
+
+    <form id="shift-form" class="card" novalidate>
+      <div class="form-group">
+        <label for="shift-date">Date</label>
+        <input type="date" id="shift-date" class="input" required />
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="start-time">Start</label>
+          <input type="time" id="start-time" class="input" required />
+        </div>
+        <div class="form-group">
+          <label for="end-time">End</label>
+          <input type="time" id="end-time" class="input" required />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="position">Position</label>
+        <select id="position" class="input" required>
+          <option value="">Choose a position</option>
+          <option>Barista</option>
+          <option>Till</option>
+          <option>Stock</option>
+          <option>Kitchen</option>
+          <option>Cleaner</option>
+          <option>Supervisor</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="employee">Employee</label>
+        <select id="employee" class="input">
+          <option value="">Leave open (anyone can take it)</option>
+        </select>
+      </div>
+
+      <p id="shift-length" class="card-sub"></p>
+
+      <button type="submit" id="save-button" class="btn btn-primary btn-block">Save shift</button>
+    </form>
+
+    <a href="rota.html" class="btn btn-secondary btn-block">Back to rota</a>
+  </main>
+
+  <!-- Order matters: api.js, then sample data, then shared code, then this page -->
+  <script src="../js/api.js"></script>
+  <script src="js/sample-data.js"></script>
+  <script src="js/manager-common.js"></script>
+  <script src="js/create-shift.js"></script>
+</body>
+</html>

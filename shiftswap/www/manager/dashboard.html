@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard – ShiftSwap Manager</title>
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+  <!-- Top bar: page title and the notifications bell (Bikram's page) -->
+  <header class="top-bar">
+    <h1>Dashboard</h1>
+    <a href="../notifications.html" title="Notifications">🔔</a>
+  </header>
+
+  <!-- Manager tabs: phone = bottom bar, laptop = under the header -->
+  <nav class="tab-bar">
+    <a href="dashboard.html" class="active"><span>🏠</span>Dashboard</a>
+    <a href="rota.html"><span>📅</span>Rota</a>
+    <a href="swaps.html"><span>✅</span>Approvals</a>
+    <a href="staff.html"><span>👥</span>Staff</a>
+  </nav>
+
+  <main class="page">
+    <div id="message" hidden></div>
+
+    <p id="welcome" class="card-sub"></p>
+
+    <!-- Three quick numbers -->
+    <section class="stats">
+      <div class="card stat">
+        <div class="stat-number" id="stat-today">–</div>
+        <div class="stat-label">Shifts today</div>
+      </div>
+      <div class="card stat">
+        <div class="stat-number" id="stat-open">–</div>
+        <div class="stat-label">Uncovered (7 days)</div>
+      </div>
+      <div class="card stat">
+        <div class="stat-number" id="stat-swaps">–</div>
+        <div class="stat-label">Swaps to approve</div>
+      </div>
+    </section>
+
+    <!-- Warning appears only when shifts have nobody assigned -->
+    <div id="uncovered-warning" class="message message-warning" hidden></div>
+
+    <a href="create-shift.html" class="btn btn-primary btn-block">+ Create shift</a>
+
+    <h2>Who's working today</h2>
+    <div id="today-list"><p class="loading">Loading…</p></div>
+
+    <h2>Uncovered shifts (next 7 days)</h2>
+    <div id="open-list"><p class="loading">Loading…</p></div>
+  </main>
+
+  <!-- Order matters: api.js, then sample data, then shared code, then this page -->
+  <script src="../js/api.js"></script>
+  <script src="js/sample-data.js"></script>
+  <script src="js/manager-common.js"></script>
+  <script src="js/dashboard.js"></script>
+</body>
+</html>
