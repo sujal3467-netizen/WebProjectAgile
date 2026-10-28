@@ -30,14 +30,16 @@ INSERT INTO shifts (shift_date, start_time, end_time, position, assigned_to, sta
 (date('now', '-6 days', 'weekday 1', '+2 days'), '09:00', '15:00', 'Barista', 2, 'assigned'),  -- 5 Wed Tom
 (date('now', '-6 days', 'weekday 1', '+3 days'), '07:00', '12:00', 'Till',    3, 'assigned'),  -- 6 Thu Aisha
 (date('now', '-6 days', 'weekday 1', '+3 days'), '12:00', '17:00', 'Barista', 4, 'open'),      -- 7 Thu Leo (being swapped)
-(date('now', '-6 days', 'weekday 1', '+4 days'), '10:00', '18:00', 'Stock',   5, 'assigned'),  -- 8 Fri Sara
+(date('now', '-6 days', 'weekday 1', '+4 days'), '10:00', '18:00', 'Stock',   5, 'open'),      -- 8 Fri Sara (being swapped)
 (date('now', '-6 days', 'weekday 1', '+5 days'), '09:00', '14:00', 'Barista', 2, 'assigned'),  -- 9 Sat Tom
 (date('now', '-6 days', 'weekday 1', '+5 days'), '14:00', '19:00', 'Till',    NULL, 'open');   -- 10 Sat nobody yet
 
--- ---------- One swap request waiting, so the pages have something to show ----------
--- Leo (4) has put his Thursday shift (7) up for anyone to take.
+-- ---------- Two swap requests, so both apps have something to show ----------
+-- 1: Leo (4) has put his Thursday shift (7) up for anyone -> employees can ACCEPT it (Masrur).
+-- 2: Sara (5) gave her Friday shift (8) to Aisha (3), who accepted -> manager can APPROVE it (Lajja).
 INSERT INTO swap_requests (shift_id, from_user_id, to_user_id, status) VALUES
-(7, 4, NULL, 'pending');
+(7, 4, NULL, 'pending'),
+(8, 5, 3,    'accepted');
 
 -- ---------- A couple of notifications for Bikram to test the bell page ----------
 INSERT INTO notifications (user_id, message, link, is_read) VALUES
