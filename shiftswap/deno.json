@@ -1,0 +1,6 @@
+{
+  "tasks": {
+    "start": "deno run --allow-net --allow-read --allow-write server/server.js",
+    "reset-db": "deno run --allow-read --allow-write server/reset-db.js"
+  }
+}

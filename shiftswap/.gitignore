@@ -1,0 +1,8 @@
+# The SQLite database file is created from schema.sql + seed.sql,
+# so we never commit it (everyone builds their own copy).
+*.db
+*.db-journal
+
+# Editor / OS clutter
+.DS_Store
+.vscode/settings.json
