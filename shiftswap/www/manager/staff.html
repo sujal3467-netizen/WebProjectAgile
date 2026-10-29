@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Staff – ShiftSwap Manager</title>
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+  <!-- Top bar: page title and the notifications bell (Bikram's page) -->
+  <header class="top-bar">
+    <h1>Staff</h1>
+    <a href="../notifications.html" title="Notifications">🔔</a>
+  </header>
+
+  <!-- Manager tabs: phone = bottom bar, laptop = under the header -->
+  <nav class="tab-bar">
+    <a href="dashboard.html"><span>🏠</span>Dashboard</a>
+    <a href="rota.html"><span>📅</span>Rota</a>
+    <a href="swaps.html"><span>✅</span>Approvals</a>
+    <a href="staff.html" class="active"><span>👥</span>Staff</a>
+  </nav>
+
+  <main class="page">
+    <div id="message" hidden></div>
+
+    <div class="card">
+      <div class="card-row">
+        <div>
+          <div class="card-title">Total hours this week</div>
+          <div class="card-sub" id="week-range"></div>
+        </div>
+        <div class="stat-number" id="total-hours">–</div>
+      </div>
+      <div class="card-sub" id="total-pay"></div>
+    </div>
+
+    <h2>Employees</h2>
+    <div id="staff-list"><p class="loading">Loading…</p></div>
+  </main>
+
+  <!-- Order matters: api.js, then sample data, then shared code, then this page -->
+  <script src="../js/api.js"></script>
+  <script src="js/sample-data.js"></script>
+  <script src="js/manager-common.js"></script>
+  <script src="js/staff.js"></script>
+</body>
+</html>
