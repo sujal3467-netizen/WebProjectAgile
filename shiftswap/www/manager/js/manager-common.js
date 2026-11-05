@@ -107,7 +107,7 @@ function whoIsOn(shift) {
 async function checkManager() {
   if (USE_SAMPLE_DATA) return { id: 1, name: "Priya Shah", role: "manager" }; // same as seed.sql
   try {
-    const me = await api.get("/me");
+    const me = await api.get("/api/me");
     if (me.role !== "manager") {
       window.location.href = "../index.html"; // employees go back to login
     }
@@ -165,7 +165,7 @@ function sortShifts(shifts) {
 
 // GET /api/shifts/week?start=YYYY-MM-DD  (start = a Monday)
 async function getWeekShifts(start) {
-  if (!USE_SAMPLE_DATA) return api.get("/shifts/week?start=" + start);
+  if (!USE_SAMPLE_DATA) return api.get("/api/shifts/week?start=" + start);
 
   const data = loadSample();
   const end = addDays(start, 6);
@@ -175,7 +175,7 @@ async function getWeekShifts(start) {
 
 // POST /api/shifts
 async function createShift(shift) {
-  if (!USE_SAMPLE_DATA) return api.post("/shifts", shift);
+  if (!USE_SAMPLE_DATA) return api.post("/api/shifts", shift);
 
   const data = loadSample();
   const newShift = { id: data.nextShiftId, ...shift };
@@ -187,7 +187,7 @@ async function createShift(shift) {
 
 // PUT /api/shifts/:id
 async function updateShift(id, shift) {
-  if (!USE_SAMPLE_DATA) return api.put("/shifts/" + id, shift);
+  if (!USE_SAMPLE_DATA) return api.put("/api/shifts/" + id, shift);
 
   const data = loadSample();
   const index = data.shifts.findIndex((s) => s.id === id);
@@ -199,7 +199,7 @@ async function updateShift(id, shift) {
 
 // DELETE /api/shifts/:id
 async function deleteShift(id) {
-  if (!USE_SAMPLE_DATA) return api.del("/shifts/" + id);
+  if (!USE_SAMPLE_DATA) return api.del("/api/shifts/" + id);
 
   const data = loadSample();
   data.shifts = data.shifts.filter((s) => s.id !== id);
@@ -210,7 +210,7 @@ async function deleteShift(id) {
 
 // GET /api/swaps/pending  – swaps a colleague has accepted, waiting for the manager
 async function getPendingSwaps() {
-  if (!USE_SAMPLE_DATA) return api.get("/swaps/pending");
+  if (!USE_SAMPLE_DATA) return api.get("/api/swaps/pending");
 
   const data = loadSample();
   const waiting = data.swaps.filter((s) => s.status === "accepted");
@@ -234,7 +234,7 @@ async function getPendingSwaps() {
 
 // POST /api/swaps/:id/approve  – the real server does this in one SQL transaction
 async function approveSwap(id) {
-  if (!USE_SAMPLE_DATA) return api.post("/swaps/" + id + "/approve");
+  if (!USE_SAMPLE_DATA) return api.post("/api/swaps/" + id + "/approve");
 
   const data = loadSample();
   const swap = data.swaps.find((s) => s.id === id);
@@ -248,7 +248,7 @@ async function approveSwap(id) {
 
 // POST /api/swaps/:id/reject
 async function rejectSwap(id) {
-  if (!USE_SAMPLE_DATA) return api.post("/swaps/" + id + "/reject");
+  if (!USE_SAMPLE_DATA) return api.post("/api/swaps/" + id + "/reject");
 
   const data = loadSample();
   const swap = data.swaps.find((s) => s.id === id);
@@ -259,7 +259,7 @@ async function rejectSwap(id) {
 
 // GET /api/staff  – employees and their hours this week
 async function getStaff() {
-  if (!USE_SAMPLE_DATA) return api.get("/staff");
+  if (!USE_SAMPLE_DATA) return api.get("/api/staff");
 
   const data = loadSample();
   const monday = formatDate(getMonday(new Date()));
