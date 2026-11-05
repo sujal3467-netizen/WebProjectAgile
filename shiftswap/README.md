@@ -164,7 +164,7 @@ After login, send managers to `/manager/` and employees to `/employee/` based on
 
 | Method | Route | Who | Send | Returns |
 |---|---|---|---|---|
-| GET | `/api/shifts/mine` | E | – | my shifts, earliest first |
+| GET | `/api/shifts/mine` | All | – | my shifts from today, earliest first |
 | GET | `/api/shifts/week?start=YYYY-MM-DD` | All | `start` = a Monday | all shifts Mon–Sun, with the employee's name |
 | GET | `/api/shifts/open` | All | – | shifts with status `open` |
 | POST | `/api/shifts` | M | `{ shift_date, start_time, end_time, position, assigned_to }` | the new shift (201) |
@@ -176,6 +176,44 @@ A shift looks like this:
 ```json
 { "id": 7, "shift_date": "2026-10-29", "start_time": "12:00", "end_time": "17:00",
   "position": "Barista", "assigned_to": 4, "assigned_name": "Leo Martin", "status": "open" }
+```
+
+- `/mine` and `/open` show shifts from **today onwards**; `/week` shows the 7 days from `start`, past or future.
+- `assigned_name` is `null` for an open shift with nobody on it.
+- **Create:** `assigned_to` is optional. Leave it out (or send `null`) for an open shift. It must be an **employee's** id.
+- **Edit:** send only the fields you change, e.g. `{ "position": "Till" }`. Changing `assigned_to` also updates `status` (`null` → `open`, an id → `assigned`).
+- **Delete** also deletes any swap requests for that shift.
+- Checks that give a `400`: dates must be real (`2026-02-31` is rejected), times are `HH:MM`, `end_time` must be after `start_time` (BR6), `position` is required (max 50 characters).
+- Employees calling create, edit or delete get `403 { "error": "Only managers can do this" }`.
+
+**Example – my shifts (for Masrur, SS-42):**
+
+```js
+const shifts = await api.get("/api/shifts/mine");
+if (shifts.length === 0) list.textContent = "No upcoming shifts";
+for (const shift of shifts) {
+  const item = document.createElement("li");
+  item.textContent = `${shift.shift_date} ${shift.start_time}–${shift.end_time} · ${shift.position}`;
+  list.append(item);
+}
+```
+
+**Example – weekly rota and saving a shift (for Lajja, SS-43 / SS-44):**
+
+```js
+const week = await api.get("/api/shifts/week?start=2026-11-02");   // a Monday
+
+try {
+  const shift = await api.post("/api/shifts", {
+    shift_date: "2026-11-10", start_time: "09:00", end_time: "17:00",
+    position: "Till", assigned_to: 3,        // or null for an open shift
+  });
+} catch (error) {
+  message.textContent = error.message;     // e.g. "end_time must be after start_time"
+}
+
+await api.put("/api/shifts/7", { assigned_to: 4 });
+await api.del("/api/shifts/7");
 ```
 
 #### Swaps (Sprint 2)
@@ -213,6 +251,12 @@ A shift looks like this:
 | POST | `/api/login` | Public | `{ user: { id, name, role } }` + session cookie |
 | POST | `/api/logout` | All | `{ ok: true }` |
 | GET | `/api/me` | All | `{ id, name, email, role, hourly_rate }` |
+| GET | `/api/shifts/mine` | All | my shifts from today, earliest first |
+| GET | `/api/shifts/week?start=` | All | 7 days of shifts with names |
+| GET | `/api/shifts/open` | All | open shifts from today |
+| POST | `/api/shifts` | M | the new shift (201) |
+| PUT | `/api/shifts/:id` | M | the updated shift |
+| DELETE | `/api/shifts/:id` | M | `{ ok: true }` |
 
 **Quick test without a login page:** start the server, open http://localhost:8000, press F12 → **Console**, and type:
 

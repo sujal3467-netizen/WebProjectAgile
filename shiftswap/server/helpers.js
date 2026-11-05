@@ -26,3 +26,26 @@ export async function readJson(request) {
     return null;
   }
 }
+
+// =============================================================
+// Input checks (Week 2, Tuesday) – used by the shift and swap routes
+// =============================================================
+
+// "2026-11-05" -> true.  "2026-13-40", "5/11/2026", 123 -> false
+export function isValidDate(text) {
+  if (typeof text !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(text)) return false;
+  const date = new Date(text + "T00:00:00Z");
+  // new Date("2026-02-31") quietly becomes 3 March, so check it didn't change.
+  return !isNaN(date) && date.toISOString().slice(0, 10) === text;
+}
+
+// "09:30" -> true.  "9:30", "24:00", "12:60" -> false
+export function isValidTime(text) {
+  return typeof text === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(text);
+}
+
+// Turn the ":id" part of a URL into a whole number, or null if it isn't one.
+export function toId(text) {
+  const id = Number(text);
+  return Number.isInteger(id) && id > 0 ? id : null;
+}

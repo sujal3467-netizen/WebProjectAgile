@@ -13,6 +13,7 @@
 
 import { pbkdf2Sync, randomBytes, timingSafeEqual } from "node:crypto";
 import { db } from "./db.js";
+import { errorResponse } from "./helpers.js";
 
 const ITERATIONS = 100000;        // how many times to scramble (slower = harder to crack)
 const SESSION_HOURS = 8;          // how long a login lasts
@@ -90,4 +91,22 @@ export function getCurrentUser(request) {
   `).get(token, `-${SESSION_HOURS} hours`);
 
   return user || null;
+}
+
+// ----- Use at the top of every protected route -----
+// checkAccess(request)             -> anyone logged in
+// checkAccess(request, "manager")  -> managers only
+// Returns { user } if allowed, or { error } (a ready-made 401/403 response).
+//
+//   const { user, error } = checkAccess(request, "manager");
+//   if (error) return error;
+export function checkAccess(request, requiredRole) {
+  const user = getCurrentUser(request);
+  if (!user) {
+    return { error: errorResponse("Please log in", 401) };
+  }
+  if (requiredRole && user.role !== requiredRole) {
+    return { error: errorResponse(`Only ${requiredRole}s can do this`, 403) };
+  }
+  return { user };
 }
