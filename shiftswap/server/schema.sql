@@ -32,7 +32,8 @@ CREATE TABLE shifts (
   position    TEXT NOT NULL,                      -- e.g. 'Barista', 'Till'
   assigned_to INTEGER REFERENCES users(id),       -- NULL = nobody has it yet
   status      TEXT NOT NULL DEFAULT 'assigned'
-              CHECK (status IN ('assigned', 'open'))
+              CHECK (status IN ('assigned', 'open')),
+  CHECK (end_time > start_time)                   -- rule BR6: a shift can't end before it starts
 );
 
 -- ---------- swap_requests: an employee giving away a shift ----------
