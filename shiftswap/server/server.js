@@ -1,9 +1,9 @@
 // =============================================================
-// ShiftSwap server (Week 1, Monday) – owner: Sujal
-// Jira: SS-5 Set up repo and Deno server
+// ShiftSwap server – owner: Sujal
+// Week 1: serves www/ and /api/health.  Week 2 Monday: login routes.
 //
 // What this file does:
-//   1. Any URL starting with /api/ is handled as our JSON API.
+//   1. Any URL starting with /api/ is looked up in the ROUTES table below.
 //   2. Every other URL is treated as a file inside the www/ folder
 //      (e.g. /  -> www/index.html,  /css/style.css -> www/css/style.css).
 // =============================================================
@@ -12,65 +12,60 @@
 // It also blocks tricks like /../../secret.txt, so we don't have to.
 import { serveDir } from "jsr:@std/http@1/file-server";
 
-// Our database connection (Week 1 Tuesday, SS-6).
 import { db } from "./db.js";
+import { jsonResponse, errorResponse } from "./helpers.js";
+import { handleLogin, handleLogout, handleMe } from "./routes/auth.js";
 
 // ----- Settings -----
 const PORT = 8000;
-// "0.0.0.0" means "listen on every network address this laptop has".
-// "localhost" would only allow this laptop; 0.0.0.0 lets phones on the
-// same Wi-Fi/hotspot open the site during our demos.
+// "0.0.0.0" = listen on every network address of this laptop, so phones
+// on the same Wi-Fi/hotspot can open the site during demos.
 const HOSTNAME = "0.0.0.0";
 
-// ----- Helper: send a JavaScript object back as JSON -----
-// Every API route will use this, so all our responses look the same.
-function jsonResponse(data, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status: status,
-    headers: { "content-type": "application/json; charset=utf-8" },
-  });
-}
-
-// ----- Helper: how many rows are in each table? -----
-// Handy for the demo: you can SEE the database is there.
+// ----- GET /api/health: proves the server and database are working -----
 // (Table names can't use ? placeholders, but this list is fixed by us,
-// never typed by a user, so joining them into the SQL is safe here.)
-function countRows() {
+// never typed by a user, so putting them into the SQL is safe here.)
+function handleHealth() {
   const tables = ["users", "shifts", "swap_requests", "notifications", "sessions"];
   const counts = {};
   for (const table of tables) {
     counts[table] = db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get().n;
   }
-  return counts;
+  return jsonResponse({ ok: true, message: "ShiftSwap server is running", database: counts });
 }
 
-// ----- API routes (/api/...) -----
-// Today we only have one test route. In Week 2 we add login, shifts, etc.
-function handleApi(request, url) {
-  // GET /api/health  ->  proves the server, API AND database are working
-  if (url.pathname === "/api/health" && request.method === "GET") {
-    return jsonResponse({
-      ok: true,
-      message: "ShiftSwap server is running",
-      database: countRows(),
-    });
-  }
-
-  // Any /api/ URL we don't know about gets a clear JSON error.
-  return jsonResponse({ error: "Route not found" }, 404);
-}
+// ----- The route table: "METHOD /path" -> function that handles it -----
+// To add a route: write its function in server/routes/, import it above,
+// add one line here, and add it to the README.
+const ROUTES = {
+  "GET /api/health": handleHealth,
+  "POST /api/login": handleLogin,
+  "POST /api/logout": handleLogout,
+  "GET /api/me": handleMe,
+};
 
 // ----- Main handler: runs once for every request -----
-function handleRequest(request) {
+async function handleRequest(request) {
   const url = new URL(request.url);
 
-  if (url.pathname.startsWith("/api/")) {
-    return handleApi(request, url);
+  // Not an API call, so send a file from www/.
+  if (!url.pathname.startsWith("/api/")) {
+    return serveDir(request, { fsRoot: "www", quiet: true });
   }
 
-  // Not an API call, so send a file from www/.
-  // fsRoot is relative to where you run "deno task start" (the project root).
-  return serveDir(request, { fsRoot: "www", quiet: true });
+  const handler = ROUTES[`${request.method} ${url.pathname}`];
+  if (!handler) {
+    return errorResponse("Route not found", 404);
+  }
+
+  // If a route crashes, log the details for us but send the page a
+  // simple JSON error instead of leaking server internals.
+  try {
+    return await handler(request, url);
+  } catch (error) {
+    console.error(error);
+    return errorResponse("Something went wrong on the server", 500);
+  }
 }
 
 // ----- Start the server -----
