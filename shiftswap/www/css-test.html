@@ -1,0 +1,83 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ShiftSwap CSS Test</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <strong>ShiftSwap</strong>
+    <div class="nav-links">
+      <a href="#">My Shifts</a>
+      <a href="#">Swap Requests</a>
+      <a href="#">Notifications</a>
+    </div>
+  </nav>
+
+  <main class="container">
+    <div class="page-header">
+      <div>
+        <h1>My Dashboard</h1>
+        <p class="text-muted">ShiftSwap design system test</p>
+      </div>
+      <button class="btn btn-primary">Request Swap</button>
+    </div>
+
+    <section class="grid grid-3">
+      <article class="card">
+        <h2 class="card-title">My Shifts</h2>
+        <p class="card-description">View your assigned shifts.</p>
+        <button class="btn btn-secondary">View Details</button>
+      </article>
+
+      <article class="card">
+        <h2 class="card-title">Swap Requests</h2>
+        <p class="card-description">Manage your shift requests.</p>
+        <span class="status status-pending">Pending</span>
+      </article>
+
+      <article class="card">
+        <h2 class="card-title">Approved Swap</h2>
+        <p class="card-description">Your request was approved.</p>
+        <span class="status status-approved">Approved</span>
+      </article>
+    </section>
+
+    <section class="card mt-3">
+      <h2>Example Shift</h2>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Time</th>
+              <th>Position</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Monday</td>
+              <td>09:00–17:00</td>
+              <td>Cashier</td>
+              <td><span class="status status-open">Open</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card mt-3">
+      <h2>Button Styles</h2>
+      <div class="flex">
+        <button class="btn btn-primary">Request Swap</button>
+        <button class="btn btn-secondary">View Details</button>
+        <button class="btn btn-danger">Reject Swap</button>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
