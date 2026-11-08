@@ -2,34 +2,49 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <!-- This line makes the page fit phone screens properly -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ShiftSwap – test page</title>
-  <style>
-    body { font-family: system-ui, sans-serif; max-width: 600px; margin: 40px auto; padding: 0 16px; }
-    #status { padding: 12px; border-radius: 8px; background: #eee; }
-  </style>
+  <title>ShiftSwap - Log in</title>
+  <!-- Bikram's shared styles -->
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <!-- Temporary test page (SS-5). Masrur replaces this with the real login page. -->
-  <h1>ShiftSwap</h1>
-  <p>If you can read this, the Deno server is serving files from <code>www/</code>.</p>
-  <p id="status">Checking the API…</p>
+  <!-- container centres the page; max-width keeps the login box narrow on a laptop -->
+  <main class="container" style="max-width: 420px;">
 
-  <!-- api.js lets you test login from the browser console (F12 → Console). -->
-  <script src="/js/api.js"></script>
-  <script>
-    // Ask the server's test route and show the answer on the page.
-    fetch("/api/health")
-      .then((response) => response.json())
-      .then((data) => {
-        // data.database holds the row count for each table, e.g. { users: 5, shifts: 10, ... }
-        document.getElementById("status").textContent =
-          "API says: " + data.message + " | rows in database: " + JSON.stringify(data.database);
-      })
-      .catch(() => {
-        document.getElementById("status").textContent = "API not reachable – is the server running?";
-      });
-  </script>
+    <h1 class="text-center">ShiftSwap</h1>
+    <p class="text-muted text-center">Log in to see your shifts</p>
+
+    <!-- card = white rounded box -->
+    <section class="card">
+
+      <!-- Next step: JavaScript finds this form by its id -->
+      <form id="login-form">
+
+        <!-- form-group adds the spacing under each label + input pair -->
+        <div class="form-group">
+          <!-- "for" matches the input's "id": tapping the label selects the box -->
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email"
+                 autocomplete="email" required>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password"
+                 autocomplete="current-password" required>
+        </div>
+
+        <!-- "hidden" is Bikram's class that hides this. JavaScript removes it on a failed login.
+             The red colour uses his --danger variable until he adds an error class. -->
+        <p id="login-error" class="hidden" style="color: var(--danger);">
+          Wrong email or password
+        </p>
+
+        <!-- Bikram's blue main button -->
+        <button class="btn btn-primary" type="submit">Log in</button>
+      </form>
+
+    </section>
+  </main>
 </body>
 </html>
