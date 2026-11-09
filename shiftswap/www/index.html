@@ -17,7 +17,7 @@
     <!-- card = white rounded box -->
     <section class="card">
 
-      <!-- Next step: JavaScript finds this form by its id -->
+      <!-- JavaScript (login.js) finds this form by its id -->
       <form id="login-form">
 
         <!-- form-group adds the spacing under each label + input pair -->
@@ -46,5 +46,10 @@
 
     </section>
   </main>
+
+  <!-- The scripts go at the END of the body, so the form already exists when they run.
+       api.js first, because login.js uses it. -->
+  <script src="/js/api.js"></script>
+  <script src="/js/login.js"></script>
 </body>
 </html>
