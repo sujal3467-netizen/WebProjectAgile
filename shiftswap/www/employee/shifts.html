@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ShiftSwap - My Shifts</title>
+  <!-- Bikram's shared styles. The path starts with / so it works from any folder. -->
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <strong>ShiftSwap</strong>
+    <button id="logout-button" class="btn btn-secondary" type="button">Log out</button>
+  </nav>
+
+  <main class="container">
+    <div class="page-header">
+      <div>
+        <h1>My Shifts</h1>
+        <p id="greeting" class="text-muted"></p>
+      </div>
+    </div>
+
+    <!-- Hidden until something goes wrong -->
+    <p id="shifts-error" class="hidden" style="color: var(--danger);"></p>
+
+    <!-- Shown while we wait for the server -->
+    <p id="loading-message" class="text-muted">Loading your shifts...</p>
+
+    <!-- The JavaScript fills this box with the shift cards -->
+    <div id="shifts-list"></div>
+  </main>
+
+  <!-- api.js first, because shifts.js uses it -->
+  <script src="/js/api.js"></script>
+  <script src="/employee/js/shifts.js"></script>
+</body>
+</html>
