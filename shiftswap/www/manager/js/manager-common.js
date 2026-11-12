@@ -13,7 +13,7 @@
 //   shifts: GET/POST/PUT/DELETE /api/shifts...      (SS-39, merged)
 //   swaps:  GET /api/swaps/pending, approve, reject (SS-47, SS-48)
 //   staff:  GET /api/staff                           (not planned yet)
-const REAL = { shifts: true, swaps: false, staff: false };
+   const REAL = { shifts: true, swaps: true, staff: false };
 
 // true while EVERYTHING is still sample data (no login needed)
 const USE_SAMPLE_DATA = !REAL.shifts && !REAL.swaps && !REAL.staff;
