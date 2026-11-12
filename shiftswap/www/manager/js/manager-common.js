@@ -305,29 +305,3 @@ async function getStaff() {
     return { ...person, shifts_this_week: theirShifts.length, hours_this_week: hours };
   });
 }
-
-
-// ---------- 4. Log out button on every manager page (SS-56, Sujal) ----------
-// Adds a "Log out" button to the top bar, so no HTML page needs changing.
-
-async function logOut() {
-  try {
-    await api.post("/api/logout");   // deletes the session on the server
-  } catch (error) {
-    // Already logged out – go to the login page anyway
-  }
-  window.location.href = "../index.html";
-}
-
-function addLogoutButton() {
-  const topBar = document.querySelector(".top-bar");
-  if (!topBar) return;               // page has no top bar – nothing to do
-  const button = document.createElement("button");
-  button.type = "button";
-  button.className = "btn";
-  button.textContent = "Log out";
-  button.addEventListener("click", logOut);
-  topBar.append(button);
-}
-
-addLogoutButton();
