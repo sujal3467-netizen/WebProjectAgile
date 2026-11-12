@@ -9,7 +9,7 @@
 //   DELETE /api/shifts/:id                     delete a shift            (managers)
 // =============================================================
 
-import { db } from "../db.js";
+import { db, transaction } from "../db.js";
 import { checkAccess } from "../auth.js";
 import {
   jsonResponse, errorResponse, readJson,
@@ -177,12 +177,25 @@ export async function handleUpdateShift(request, url, params) {
     ? (shift.assigned_to === null ? "open" : "assigned")
     : existing.status;
 
-  db.prepare(`
-    UPDATE shifts
-    SET shift_date = ?, start_time = ?, end_time = ?, position = ?, assigned_to = ?, status = ?
-    WHERE id = ?
-  `).run(shift.shift_date, shift.start_time, shift.end_time,
-         shift.position, shift.assigned_to, status, id);
+  const employeeChanged = "assigned_to" in body && shift.assigned_to !== existing.assigned_to;
+
+  transaction(() => {
+    db.prepare(`
+      UPDATE shifts
+      SET shift_date = ?, start_time = ?, end_time = ?, position = ?, assigned_to = ?, status = ?
+      WHERE id = ?
+    `).run(shift.shift_date, shift.start_time, shift.end_time,
+           shift.position, shift.assigned_to, status, id);
+
+    // If the manager gave the shift to someone else, any swap request for it
+    // is out of date (it was made by the old employee), so close it.
+    if (employeeChanged) {
+      db.prepare(`
+        UPDATE swap_requests SET status = 'rejected'
+        WHERE shift_id = ? AND status IN ('pending', 'accepted')
+      `).run(id);
+    }
+  });
 
   return jsonResponse(findShift(id));
 }
@@ -196,15 +209,10 @@ export function handleDeleteShift(request, url, params) {
   if (!id || !findShift(id)) return errorResponse("Shift not found", 404);
 
   // Swap requests point at this shift (foreign key), so they must go first.
-  // A TRANSACTION makes both deletes happen together, or neither does.
-  db.exec("BEGIN");
-  try {
+  // The transaction makes both deletes happen together, or neither does.
+  transaction(() => {
     db.prepare("DELETE FROM swap_requests WHERE shift_id = ?").run(id);
     db.prepare("DELETE FROM shifts WHERE id = ?").run(id);
-    db.exec("COMMIT");
-  } catch (err) {
-    db.exec("ROLLBACK");   // undo the half-finished delete
-    throw err;             // server.js turns this into a 500 error
-  }
+  });
   return jsonResponse({ ok: true });
 }

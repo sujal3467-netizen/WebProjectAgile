@@ -18,8 +18,9 @@ Agile Development Team Project – 6 one-week Scrum sprints. Jira space key: **S
 You need **Deno 2.2 or newer** (`deno --version`; update with `deno upgrade`).
 
 ```bash
-deno task start        # starts the server on port 8000
-deno task reset-db     # wipes the database and reloads the test data
+deno task start          # starts the server on port 8000
+deno task reset-db       # wipes the database and reloads the test data
+deno task check-access   # (server running, fresh data) tests who can call every route
 ```
 
 - Laptop: open http://localhost:8000 (use Chrome phone view: F12 → phone icon).
@@ -140,6 +141,8 @@ welcome.textContent = `Hello, ${me.name}`;
 | 404 | Doesn't exist | `{ "error": "Shift not found" }` |
 
 - Dates are `"YYYY-MM-DD"`, times are `"HH:MM"` (24-hour).
+- **Access is checked on the server, never only in the page.** Every protected route starts with `checkAccess(request)` (anyone logged in) or `checkAccess(request, "manager")` / `checkAccess(request, "employee")`. Ownership is checked too: you can only offer your own shift, can't accept your own swap, and only see your own swaps. `deno task check-access` tests all of this (18 checks).
+- **Bikram – notification routes:** use `checkAccess(request)` and only touch the logged-in user's rows, e.g. `UPDATE notifications SET is_read = 1 WHERE id = ? AND user_id = ?`, so nobody can mark someone else's notifications as read.
 
 ### Route list (the contract)
 
@@ -183,6 +186,7 @@ A shift looks like this:
 - **Create:** `assigned_to` is optional. Leave it out (or send `null`) for an open shift. It must be an **employee's** id.
 - **Edit:** send only the fields you change, e.g. `{ "position": "Till" }`. Changing `assigned_to` also updates `status` (`null` → `open`, an id → `assigned`).
 - **Delete** also deletes any swap requests for that shift.
+- If a manager gives a shift to a **different employee**, any pending or accepted swap request for it is closed (`rejected`), because it was made by the previous employee.
 - Checks that give a `400`: dates must be real (`2026-02-31` is rejected), times are `HH:MM`, `end_time` must be after `start_time` (BR6), `position` is required (max 50 characters).
 - Employees calling create, edit or delete get `403 { "error": "Only managers can do this" }`.
 
@@ -251,6 +255,7 @@ A swap looks like this:
 | It was offered to a different colleague | 403 "This swap was offered to someone else" (BR9) |
 | Approving/rejecting before anyone accepted | 400 "Only accepted swaps can be approved – …" (BR10) |
 | Approving/rejecting twice | 400 "This swap has already been decided" |
+| Accepting a swap for a shift that has passed | 400 "This shift has already happened" |
 | Wrong role | 403 "Only employees can do this" / "Only managers can do this" |
 
 **Example – offer a shift, open shifts, my swaps (for Masrur):**
