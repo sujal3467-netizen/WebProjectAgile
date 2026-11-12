@@ -4,12 +4,19 @@
 // 1. Small helpers (dates, hours, messages)
 // 2. checkManager()  – only managers may open these pages
 // 3. Data functions  – every page gets data ONLY through these.
-//    They call Sujal's API through api.js, or use sample data
-//    while USE_SAMPLE_DATA is true.
+//    They call Sujal's API through api.js (full paths like "/api/me"),
+//    or use sample data for the parts whose routes are not ready yet.
 // =============================================================
 
-// Switch to false once Sujal's routes are working
-const USE_SAMPLE_DATA = true;
+// Which parts use the REAL server. Switch each one to true when
+// Sujal's routes for it are merged into main.
+//   shifts: GET/POST/PUT/DELETE /api/shifts...      (SS-39, merged)
+//   swaps:  GET /api/swaps/pending, approve, reject (SS-47, SS-48)
+//   staff:  GET /api/staff                           (not planned yet)
+const REAL = { shifts: true, swaps: false, staff: false };
+
+// true while EVERYTHING is still sample data (no login needed)
+const USE_SAMPLE_DATA = !REAL.shifts && !REAL.swaps && !REAL.staff;
 
 // ---------- 1. Helpers ----------
 
@@ -94,10 +101,10 @@ function showMessage(text, type) {
 //  - open with no name:   nobody is on it at all
 function whoIsOn(shift) {
   if (shift.status === "open" && shift.assigned_name) {
-    return escapeHtml(shift.assigned_name) + ' <span class="badge badge-open">Up for swap</span>';
+    return escapeHtml(shift.assigned_name) + ' <span class="status status-pending">Up for swap</span>';
   }
   if (shift.status === "open") {
-    return '<span class="badge badge-open">Open – nobody assigned</span>';
+    return '<span class="status status-open">Open – nobody assigned</span>';
   }
   return escapeHtml(shift.assigned_name);
 }
@@ -109,13 +116,26 @@ async function checkManager() {
   try {
     const me = await api.get("/api/me");
     if (me.role !== "manager") {
-      window.location.href = "../index.html"; // employees go back to login
+      window.location.href = "/"; // employees go back to the login page
     }
     return me;
   } catch (error) {
-    window.location.href = "../index.html"; // not logged in
+    window.location.href = "/"; // not logged in
   }
 }
+
+// Log out button in the top bar (same as Masrur's employee pages)
+async function logOut() {
+  try {
+    await api.post("/api/logout");
+  } catch (error) {
+    // even if the server fails, go back to the login page
+  }
+  window.location.href = "/";
+}
+document.addEventListener("click", (event) => {
+  if (event.target.id === "logout-button") logOut();
+});
 
 // ---------- 3. Sample data store (only used while USE_SAMPLE_DATA) ----------
 // Saved in localStorage so a shift created on one page shows on the next.
@@ -165,7 +185,7 @@ function sortShifts(shifts) {
 
 // GET /api/shifts/week?start=YYYY-MM-DD  (start = a Monday)
 async function getWeekShifts(start) {
-  if (!USE_SAMPLE_DATA) return api.get("/api/shifts/week?start=" + start);
+  if (REAL.shifts) return api.get("/api/shifts/week?start=" + start);
 
   const data = loadSample();
   const end = addDays(start, 6);
@@ -175,7 +195,7 @@ async function getWeekShifts(start) {
 
 // POST /api/shifts
 async function createShift(shift) {
-  if (!USE_SAMPLE_DATA) return api.post("/api/shifts", shift);
+  if (REAL.shifts) return api.post("/api/shifts", shift);
 
   const data = loadSample();
   const newShift = { id: data.nextShiftId, ...shift };
@@ -187,7 +207,7 @@ async function createShift(shift) {
 
 // PUT /api/shifts/:id
 async function updateShift(id, shift) {
-  if (!USE_SAMPLE_DATA) return api.put("/api/shifts/" + id, shift);
+  if (REAL.shifts) return api.put("/api/shifts/" + id, shift);
 
   const data = loadSample();
   const index = data.shifts.findIndex((s) => s.id === id);
@@ -199,7 +219,7 @@ async function updateShift(id, shift) {
 
 // DELETE /api/shifts/:id
 async function deleteShift(id) {
-  if (!USE_SAMPLE_DATA) return api.del("/api/shifts/" + id);
+  if (REAL.shifts) return api.del("/api/shifts/" + id);
 
   const data = loadSample();
   data.shifts = data.shifts.filter((s) => s.id !== id);
@@ -210,7 +230,7 @@ async function deleteShift(id) {
 
 // GET /api/swaps/pending  – swaps a colleague has accepted, waiting for the manager
 async function getPendingSwaps() {
-  if (!USE_SAMPLE_DATA) return api.get("/api/swaps/pending");
+  if (REAL.swaps) return api.get("/api/swaps/pending");
 
   const data = loadSample();
   const waiting = data.swaps.filter((s) => s.status === "accepted");
@@ -234,7 +254,7 @@ async function getPendingSwaps() {
 
 // POST /api/swaps/:id/approve  – the real server does this in one SQL transaction
 async function approveSwap(id) {
-  if (!USE_SAMPLE_DATA) return api.post("/api/swaps/" + id + "/approve");
+  if (REAL.swaps) return api.post("/api/swaps/" + id + "/approve");
 
   const data = loadSample();
   const swap = data.swaps.find((s) => s.id === id);
@@ -243,12 +263,18 @@ async function approveSwap(id) {
   shift.assigned_to = swap.to_user_id; // the shift now belongs to the colleague
   shift.status = "assigned";
   saveSample(data);
+
+  // Until Sujal's swap routes exist, also move the REAL shift, so the
+  // real rota shows the change. Remove this when REAL.swaps is true.
+  if (REAL.shifts) {
+    await updateShift(swap.shift_id, { assigned_to: swap.to_user_id });
+  }
   return { ok: true };
 }
 
 // POST /api/swaps/:id/reject
 async function rejectSwap(id) {
-  if (!USE_SAMPLE_DATA) return api.post("/api/swaps/" + id + "/reject");
+  if (REAL.swaps) return api.post("/api/swaps/" + id + "/reject");
 
   const data = loadSample();
   const swap = data.swaps.find((s) => s.id === id);
@@ -259,11 +285,15 @@ async function rejectSwap(id) {
 
 // GET /api/staff  – employees and their hours this week
 async function getStaff() {
-  if (!USE_SAMPLE_DATA) return api.get("/api/staff");
+  if (REAL.staff) return api.get("/api/staff");
 
   const data = loadSample();
   const monday = formatDate(getMonday(new Date()));
   const sunday = addDays(monday, 6);
+
+  // Staff names come from sample data (same people as seed.sql), but the
+  // hours come from the REAL rota once shifts are real.
+  if (REAL.shifts) data.shifts = await getWeekShifts(monday);
 
   // Same idea as SQL: SUM of shift hours for each employee this week
   return data.staff.map((person) => {

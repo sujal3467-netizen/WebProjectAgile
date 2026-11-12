@@ -4,13 +4,18 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Create Shift – ShiftSwap Manager</title>
-  <link rel="stylesheet" href="../css/style.css" />
+  <!-- Bikram's shared styles first, then the extra manager styles -->
+  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="stylesheet" href="/manager/manager.css" />
 </head>
 <body>
   <!-- Top bar: page title and the notifications bell (Bikram's page) -->
   <header class="top-bar">
     <h1>Create Shift</h1>
-    <a href="../notifications.html" title="Notifications">🔔</a>
+    <div class="top-bar-actions">
+      <a href="/notifications.html" title="Notifications">🔔</a>
+      <button id="logout-button" class="btn btn-secondary" type="button">Log out</button>
+    </div>
   </header>
 
   <!-- Manager tabs: phone = bottom bar, laptop = under the header -->
@@ -70,7 +75,7 @@
   </main>
 
   <!-- Order matters: api.js, then sample data, then shared code, then this page -->
-  <script src="../js/api.js"></script>
+  <script src="/js/api.js"></script>
   <script src="js/sample-data.js"></script>
   <script src="js/manager-common.js"></script>
   <script src="js/create-shift.js"></script>

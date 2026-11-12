@@ -1,5 +1,5 @@
 // =============================================================
-// swaps.js  –  Swap Approvals (Lajja)
+// swaps.js  –  Pending swaps page (Lajja) – Jira SS-53
 // Lists swaps a colleague has accepted (status 'accepted').
 // Approve -> the shift moves to the new person (Sujal's route
 // does this in one SQL transaction). Reject -> nothing changes.
