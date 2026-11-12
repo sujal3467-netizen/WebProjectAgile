@@ -93,9 +93,23 @@ export function handleOpenShifts(request) {
   const { error } = checkAccess(request);
   if (error) return error;
 
+  // Week 3: also send the swap request behind each open shift, so the
+  // Accept button knows which swap to accept (swap_id). A shift a manager
+  // left unassigned has no swap request, so its swap_id is null.
   const shifts = db.prepare(`
-    SELECT ${SHIFT_COLUMNS}
+    SELECT shifts.id, shifts.shift_date, shifts.start_time, shifts.end_time,
+           shifts.position, shifts.assigned_to, users.name AS assigned_name, shifts.status,
+           swap.id AS swap_id, swap.to_user_id AS offered_to
+    FROM shifts
+    LEFT JOIN users ON users.id = shifts.assigned_to
+    LEFT JOIN swap_requests AS swap
+      ON swap.shift_id = shifts.id AND swap.status = 'pending'
     WHERE shifts.status = 'open' AND shifts.shift_date >= date('now', 'localtime')
+      -- hide shifts a colleague has already taken (waiting for the manager)
+      AND NOT EXISTS (
+        SELECT 1 FROM swap_requests AS taken
+        WHERE taken.shift_id = shifts.id AND taken.status = 'accepted'
+      )
     ${ORDER}
   `).all();
   return jsonResponse(shifts);

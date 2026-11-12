@@ -1,6 +1,6 @@
 // =============================================================
 // ShiftSwap server – owner: Sujal
-// Week 1: serves www/ and /api/health.  Week 2: login and shift routes.
+// Week 1: serves www/ and /api/health.  Week 2: login and shift routes.  Week 3: swaps.
 //
 // What this file does:
 //   1. Any URL starting with /api/ is looked up in the ROUTES list below.
@@ -19,6 +19,10 @@ import {
   handleMyShifts, handleWeekShifts, handleOpenShifts,
   handleCreateShift, handleUpdateShift, handleDeleteShift,
 } from "./routes/shifts.js";
+import {
+  handleCreateSwap, handleMySwaps, handleAcceptSwap,
+  handlePendingSwaps, handleApproveSwap, handleRejectSwap,
+} from "./routes/swaps.js";
 
 // ----- Settings -----
 const PORT = 8000;
@@ -55,6 +59,13 @@ const ROUTES = [
   ["POST", "/api/shifts", handleCreateShift],
   ["PUT", "/api/shifts/:id", handleUpdateShift],
   ["DELETE", "/api/shifts/:id", handleDeleteShift],
+
+  ["POST", "/api/swaps", handleCreateSwap],
+  ["GET", "/api/swaps/mine", handleMySwaps],
+  ["POST", "/api/swaps/:id/accept", handleAcceptSwap],
+  ["GET", "/api/swaps/pending", handlePendingSwaps],
+  ["POST", "/api/swaps/:id/approve", handleApproveSwap],
+  ["POST", "/api/swaps/:id/reject", handleRejectSwap],
 ];
 
 // ----- Find the route for this request -----

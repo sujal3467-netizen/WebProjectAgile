@@ -229,6 +229,59 @@ await api.del("/api/shifts/7");
 
 **Swap flow:** `pending` (posted) → `accepted` (a colleague takes it) → `approved` or `rejected` (manager decides). Each step sends a notification to the people involved.
 
+A swap looks like this:
+
+```json
+{ "id": 1, "status": "accepted", "created_at": "2026-11-12 10:56:36",
+  "shift_id": 7, "shift_date": "2026-11-12", "start_time": "12:00", "end_time": "17:00", "position": "Barista",
+  "from_user_id": 4, "from_name": "Leo Martin", "to_user_id": 2, "to_name": "Tom Baker" }
+```
+
+- `GET /api/shifts/open` now also returns **`swap_id`** (the swap to accept) and **`offered_to`** (null = anyone). A shift a manager left empty has `swap_id: null` – it can't be accepted, only assigned by a manager. Shifts someone has already accepted are hidden.
+- Approve and reject each change the request **and** the shift in one transaction (BR11): approve gives the shift to `to_user_id`; reject gives it back to `from_user_id`.
+
+| Situation | Error |
+|---|---|
+| Offering a shift that isn't yours | 403 "You can only swap your own shifts" (BR7) |
+| Offering a shift in the past | 400 "You can only swap shifts that haven't happened yet" |
+| Shift already has a pending/accepted request | 400 "This shift already has a swap request" (BR8) |
+| `to_user_id` is yourself or a manager | 400 "to_user_id must be another employee's id, …" |
+| Accepting your own swap | 400 "You can't accept your own swap" (BR9) |
+| Someone already took it | 400 "This swap is no longer available" |
+| It was offered to a different colleague | 403 "This swap was offered to someone else" (BR9) |
+| Approving/rejecting before anyone accepted | 400 "Only accepted swaps can be approved – …" (BR10) |
+| Approving/rejecting twice | 400 "This swap has already been decided" |
+| Wrong role | 403 "Only employees can do this" / "Only managers can do this" |
+
+**Example – offer a shift, open shifts, my swaps (for Masrur):**
+
+```js
+// "Offer shift" button on My shifts (leave out to_user_id to offer to anyone)
+await api.post("/api/swaps", { shift_id: shift.id, to_user_id: 3 });
+
+// Open shifts page: only show Accept when there is a swap to accept
+const open = await api.get("/api/shifts/open");
+for (const shift of open) {
+  if (shift.swap_id && shift.assigned_to !== me.id) {
+    // Accept button:
+    await api.post(`/api/swaps/${shift.swap_id}/accept`);
+  }
+}
+
+const mySwaps = await api.get("/api/swaps/mine");   // newest first, with status
+```
+
+**Example – pending swaps page (for Lajja):**
+
+```js
+const waiting = await api.get("/api/swaps/pending");
+// each has from_name, to_name, shift_date, start_time, end_time, position
+await api.post(`/api/swaps/${swap.id}/approve`);
+await api.post(`/api/swaps/${swap.id}/reject`);
+```
+
+**Notifications:** `server/notify.js` has `notify(userId, message, link)`. A starter version is included so the swap routes work; Bikram owns the file and the bell page.
+
 #### Hours and staff (Sprint 3)
 
 | Method | Route | Who | Send | Returns |
@@ -257,6 +310,12 @@ await api.del("/api/shifts/7");
 | POST | `/api/shifts` | M | the new shift (201) |
 | PUT | `/api/shifts/:id` | M | the updated shift |
 | DELETE | `/api/shifts/:id` | M | `{ ok: true }` |
+| POST | `/api/swaps` | E | the new swap (201) |
+| GET | `/api/swaps/mine` | E | my swaps, newest first |
+| POST | `/api/swaps/:id/accept` | E | the swap, now `accepted` |
+| GET | `/api/swaps/pending` | M | swaps waiting for a decision |
+| POST | `/api/swaps/:id/approve` | M | the swap, now `approved` |
+| POST | `/api/swaps/:id/reject` | M | the swap, now `rejected` |
 
 **Quick test without a login page:** start the server, open http://localhost:8000, press F12 → **Console**, and type:
 
