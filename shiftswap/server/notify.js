@@ -31,3 +31,15 @@ export function notify(userId, message, link = null) {
 
   return Number(result.lastInsertRowid);
 }
+
+
+
+   // Send the same message to every user with a role ("employee" or "manager"),
+   // optionally leaving one person out (e.g. the employee who caused it).
+   // Used by the swap routes (SS-47, SS-48).
+   export function notifyRole(role, message, link = null, exceptUserId = null) {
+     const users = db.prepare("SELECT id FROM users WHERE role = ?").all(role);
+     for (const user of users) {
+       if (user.id !== exceptUserId) notify(user.id, message, link);
+     }
+   }
