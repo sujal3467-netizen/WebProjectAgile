@@ -74,8 +74,15 @@ export async function handleCreateSwap(request) {
   `).get(shiftId);
   if (active) return errorResponse("This shift already has a swap request", 400);
 
-  // BR9: offered to anyone (null) or to ANOTHER employee.
-  const toUserId = body.to_user_id ?? null;
+  // BR9: offered to anyone (left out / null) or to ANOTHER employee.
+  // toId turns "3" into 3, so the id is always a number from here on.
+  let toUserId = null;
+  if (body.to_user_id !== undefined && body.to_user_id !== null) {
+    toUserId = toId(body.to_user_id);
+    if (toUserId === null) {
+      return errorResponse("to_user_id must be another employee's id, or left out to offer to anyone", 400);
+    }
+  }
   if (toUserId !== null) {
     const colleague = db.prepare(
       "SELECT id FROM users WHERE id = ? AND role = 'employee'",
@@ -138,6 +145,10 @@ export function handleAcceptSwap(request, url, params) {
   }
   if (swap.to_user_id !== null && swap.to_user_id !== user.id) {
     return errorResponse("This swap was offered to someone else", 403);     // BR9
+  }
+  const today = db.prepare("SELECT date('now', 'localtime') AS today").get().today;
+  if (swap.shift_date < today) {
+    return errorResponse("This shift has already happened", 400);
   }
 
   const accepted = transaction(() => {
