@@ -48,3 +48,24 @@ function databaseIsEmpty() {
 if (databaseIsEmpty()) {
   resetDatabase();
 }
+
+// ----- Run several SQL changes as ONE transaction (Week 3) -----
+// Either every change inside `work` is saved, or (if anything throws)
+// none of them are. Used by the swap routes, e.g. approving a swap must
+// update the request AND the shift together.
+//
+//   transaction(() => {
+//     db.prepare("UPDATE ...").run(...);
+//     db.prepare("UPDATE ...").run(...);
+//   });
+export function transaction(work) {
+  db.exec("BEGIN");
+  try {
+    const result = work();
+    db.exec("COMMIT");
+    return result;
+  } catch (error) {
+    db.exec("ROLLBACK");   // undo everything done inside `work`
+    throw error;           // server.js turns this into a 500 error
+  }
+}
