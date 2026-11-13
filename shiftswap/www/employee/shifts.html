@@ -10,7 +10,12 @@
 <body>
   <nav class="navbar">
     <strong>ShiftSwap</strong>
-    <button id="logout-button" class="btn btn-secondary" type="button">Log out</button>
+    <div class="nav-links">
+      <a href="/employee/shifts.html">My Shifts</a>
+      <a href="/employee/open-shifts.html">Open Shifts</a>
+      <a href="/employee/my-swaps.html">My Requests</a>
+      <button id="logout-button" class="btn btn-secondary" type="button">Log out</button>
+    </div>
   </nav>
 
   <main class="container">
@@ -19,6 +24,7 @@
         <h1>My Shifts</h1>
         <p id="greeting" class="text-muted"></p>
       </div>
+      <a class="btn btn-primary" href="/employee/request-swap.html">Offer a shift</a>
     </div>
 
     <!-- Hidden until something goes wrong -->
