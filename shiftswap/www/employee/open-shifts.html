@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ShiftSwap - Open Shifts</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <strong>ShiftSwap</strong>
+    <div class="nav-links">
+      <a href="/employee/shifts.html">My Shifts</a>
+      <a href="/employee/open-shifts.html">Open Shifts</a>
+      <a href="/employee/my-swaps.html">My Requests</a>
+      <button id="logout-button" class="btn btn-secondary" type="button">Log out</button>
+    </div>
+  </nav>
+
+  <main class="container">
+    <div class="page-header">
+      <h1>Open Shifts</h1>
+    </div>
+
+    <p id="loading-message" class="text-muted">Loading open shifts...</p>
+    <p id="open-error" class="hidden" style="color: var(--danger);"></p>
+    <p id="open-success" class="hidden" style="color: var(--success);"></p>
+
+    <div id="open-list"></div>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script src="/employee/js/open-shifts.js"></script>
+</body>
+</html>
