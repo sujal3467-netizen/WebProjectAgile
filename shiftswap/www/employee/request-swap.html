@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ShiftSwap - Offer a Shift</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <strong>ShiftSwap</strong>
+    <div class="nav-links">
+      <a href="/employee/shifts.html">My Shifts</a>
+      <a href="/employee/open-shifts.html">Open Shifts</a>
+      <a href="/employee/my-swaps.html">My Requests</a>
+      <button id="logout-button" class="btn btn-secondary" type="button">Log out</button>
+    </div>
+  </nav>
+
+  <main class="container" style="max-width: 520px;">
+    <div class="page-header">
+      <h1>Request Swap</h1>
+    </div>
+
+    <p id="loading-message" class="text-muted">Loading your shifts...</p>
+    <p id="swap-error" class="hidden" style="color: var(--danger);"></p>
+    <p id="swap-success" class="hidden" style="color: var(--success);"></p>
+
+    <form id="swap-form" class="hidden">
+      <div class="form-group">
+        <label for="shift-select">Your shift</label>
+        <select id="shift-select" required></select>
+      </div>
+      <p class="text-muted">Your shift will be offered to anyone (open shift).</p>
+      <button id="submit-button" class="btn btn-primary" type="submit">Send request</button>
+    </form>
+
+    <p id="no-shifts" class="hidden text-muted">You have no shifts you can offer right now.</p>
+    <p class="mt-3"><a href="/employee/my-swaps.html">See my requests</a></p>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script src="/employee/js/request-swap.js"></script>
+</body>
+</html>
