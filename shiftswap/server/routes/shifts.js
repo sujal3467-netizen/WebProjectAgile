@@ -1,9 +1,13 @@
 // =============================================================
 // Shift routes (Week 2, Tuesday) – owner: Sujal – Jira SS-39
+// Week 4: filters, search and paging on the read routes – SS-57
 //
-//   GET    /api/shifts/mine                    my upcoming shifts        (logged in)
+//   GET    /api/shifts/mine                    my shifts                 (logged in)
+//            ?from= &to= &position= &include_past=true &page= &limit=
 //   GET    /api/shifts/week?start=YYYY-MM-DD   7 days from "start"       (logged in)
+//            &employee= &position= &status=assigned|open
 //   GET    /api/shifts/open                    upcoming open shifts      (logged in)
+//            ?from= &to= &position= &page= &limit=
 //   POST   /api/shifts                         create a shift            (managers)
 //   PUT    /api/shifts/:id                     edit a shift              (managers)
 //   DELETE /api/shifts/:id                     delete a shift            (managers)
@@ -11,19 +15,24 @@
 
 import { db, transaction } from "../db.js";
 import { checkAccess } from "../auth.js";
+import { runList } from "../list.js";
 import {
   jsonResponse, errorResponse, readJson,
   isValidDate, isValidTime, toId,
+  readPaging, readDateFilter, readChoiceFilter,
 } from "../helpers.js";
 
 // Every shift we send back has the same shape, including the employee's
 // name (LEFT JOIN, because an open shift may have nobody assigned).
-const SHIFT_COLUMNS = `
+const SHIFT_FIELDS = `
   shifts.id, shifts.shift_date, shifts.start_time, shifts.end_time,
   shifts.position, shifts.assigned_to, users.name AS assigned_name, shifts.status
+`;
+const SHIFT_FROM = `
   FROM shifts
   LEFT JOIN users ON users.id = shifts.assigned_to
 `;
+const SHIFT_COLUMNS = SHIFT_FIELDS + SHIFT_FROM;
 const ORDER = "ORDER BY shifts.shift_date, shifts.start_time";
 
 // ----- Find one shift by id (or undefined) -----
@@ -54,22 +63,69 @@ function checkShiftFields(shift) {
   return null;
 }
 
+// ===================== FILTERS AND PAGING (SS-57) =====================
+//
+// Every list route builds its WHERE clause the same way:
+//   conditions = ["shifts.assigned_to = ?", "shifts.position ..."]
+//   values     = [ 2,                        "barista"          ]
+// Each filter that was sent adds ONE condition and its value.
+// Values always go in through ? placeholders, never into the SQL text.
+
+// Read the filters most shift lists share: ?from= &to= &position=
+// Adds their conditions to `conditions` / `values`.
+// Returns an error message, or null if all is fine.
+function addShiftFilters(url, conditions, values) {
+  const from = readDateFilter(url, "from");
+  const to = readDateFilter(url, "to");
+  if (from.error) return from.error;
+  if (to.error) return to.error;
+  if (from.value && to.value && from.value > to.value) return "from must be before to";
+
+  if (from.value) {
+    conditions.push("shifts.shift_date >= ?");
+    values.push(from.value);
+  }
+  if (to.value) {
+    conditions.push("shifts.shift_date <= ?");
+    values.push(to.value);
+  }
+
+  // position: "bar" finds "Barista" – part of the word, upper or lower case
+  const position = (url.searchParams.get("position") || "").trim();
+  if (position.length > 50) return "position must be 50 characters or fewer";
+  if (position) {
+    conditions.push("instr(lower(shifts.position), lower(?)) > 0");
+    values.push(position);
+  }
+  return null;
+}
+
 // ===================== READ ROUTES (anyone logged in) =====================
 
 // ----- GET /api/shifts/mine -----
-export function handleMyShifts(request) {
+// By default only shifts from today; ?include_past=true shows older ones too.
+export function handleMyShifts(request, url) {
   const { user, error } = checkAccess(request);
   if (error) return error;
 
-  const shifts = db.prepare(`
-    SELECT ${SHIFT_COLUMNS}
-    WHERE shifts.assigned_to = ? AND shifts.shift_date >= date('now', 'localtime')
-    ${ORDER}
-  `).all(user.id);
-  return jsonResponse(shifts);
+  const paging = readPaging(url);
+  const past = readChoiceFilter(url, "include_past", ["true", "false"]);
+  if (paging.error) return errorResponse(paging.error, 400);
+  if (past.error) return errorResponse(past.error, 400);
+
+  const conditions = ["shifts.assigned_to = ?"];
+  const values = [user.id];
+  if (past.value !== "true") {
+    conditions.push("shifts.shift_date >= date('now', 'localtime')");
+  }
+  const problem = addShiftFilters(url, conditions, values);
+  if (problem) return errorResponse(problem, 400);
+
+  return runList({ fields: SHIFT_FIELDS, from: SHIFT_FROM, conditions, values, order: ORDER, paging });
 }
 
 // ----- GET /api/shifts/week?start=2026-11-02 -----
+// Optional: &employee=3 &position=bar &status=open  (for the manager's filter bar)
 export function handleWeekShifts(request, url) {
   const { error } = checkAccess(request);
   if (error) return error;
@@ -80,39 +136,64 @@ export function handleWeekShifts(request, url) {
   }
 
   // The week = start day plus the next 6 days.
-  const shifts = db.prepare(`
-    SELECT ${SHIFT_COLUMNS}
-    WHERE shifts.shift_date BETWEEN ? AND date(?, '+6 days')
-    ${ORDER}
-  `).all(start, start);
-  return jsonResponse(shifts);
+  const conditions = ["shifts.shift_date BETWEEN ? AND date(?, '+6 days')"];
+  const values = [start, start];
+
+  const status = readChoiceFilter(url, "status", ["assigned", "open"]);
+  if (status.error) return errorResponse(status.error, 400);
+  if (status.value) {
+    conditions.push("shifts.status = ?");
+    values.push(status.value);
+  }
+
+  const employeeText = url.searchParams.get("employee");
+  if (employeeText) {
+    const employee = toId(employeeText);
+    if (!employee) return errorResponse("employee must be an employee's id", 400);
+    conditions.push("shifts.assigned_to = ?");
+    values.push(employee);
+  }
+
+  const problem = addShiftFilters(url, conditions, values);
+  if (problem) return errorResponse(problem, 400);
+
+  return runList({
+    fields: SHIFT_FIELDS, from: SHIFT_FROM, conditions, values, order: ORDER,
+    paging: { paged: false },   // a week is small, so never paged
+  });
 }
 
 // ----- GET /api/shifts/open -----
-export function handleOpenShifts(request) {
+// Also sends the swap request behind each open shift, so the Accept button
+// knows which swap to accept (swap_id). A shift a manager left unassigned
+// has no swap request, so its swap_id is null.
+export function handleOpenShifts(request, url) {
   const { error } = checkAccess(request);
   if (error) return error;
 
-  // Week 3: also send the swap request behind each open shift, so the
-  // Accept button knows which swap to accept (swap_id). A shift a manager
-  // left unassigned has no swap request, so its swap_id is null.
-  const shifts = db.prepare(`
-    SELECT shifts.id, shifts.shift_date, shifts.start_time, shifts.end_time,
-           shifts.position, shifts.assigned_to, users.name AS assigned_name, shifts.status,
-           swap.id AS swap_id, swap.to_user_id AS offered_to
-    FROM shifts
-    LEFT JOIN users ON users.id = shifts.assigned_to
-    LEFT JOIN swap_requests AS swap
-      ON swap.shift_id = shifts.id AND swap.status = 'pending'
-    WHERE shifts.status = 'open' AND shifts.shift_date >= date('now', 'localtime')
-      -- hide shifts a colleague has already taken (waiting for the manager)
-      AND NOT EXISTS (
-        SELECT 1 FROM swap_requests AS taken
-        WHERE taken.shift_id = shifts.id AND taken.status = 'accepted'
-      )
-    ${ORDER}
-  `).all();
-  return jsonResponse(shifts);
+  const paging = readPaging(url);
+  if (paging.error) return errorResponse(paging.error, 400);
+
+  const conditions = [
+    "shifts.status = 'open'",
+    "shifts.shift_date >= date('now', 'localtime')",
+    // hide shifts a colleague has already taken (waiting for the manager)
+    `NOT EXISTS (
+       SELECT 1 FROM swap_requests AS taken
+       WHERE taken.shift_id = shifts.id AND taken.status = 'accepted'
+     )`,
+  ];
+  const values = [];
+  const problem = addShiftFilters(url, conditions, values);
+  if (problem) return errorResponse(problem, 400);
+
+  return runList({
+    fields: SHIFT_FIELDS + ", swap.id AS swap_id, swap.to_user_id AS offered_to",
+    from: SHIFT_FROM + `
+      LEFT JOIN swap_requests AS swap
+        ON swap.shift_id = shifts.id AND swap.status = 'pending'`,
+    conditions, values, order: ORDER, paging,
+  });
 }
 
 // ===================== CHANGE ROUTES (managers only) =====================

@@ -220,6 +220,51 @@ await api.put("/api/shifts/7", { assigned_to: 4 });
 await api.del("/api/shifts/7");
 ```
 
+#### Filters, search and paging (Sprint 3, SS-57)
+
+Lists can be filtered **on the server**, so pages never load more than they show. Add the filters you need to the URL as query parameters; leave out any you don't need.
+
+| Route | Filters |
+|---|---|
+| `GET /api/shifts/mine` | `from`, `to` (dates), `position` (part of the word, any case: `bar` finds Barista), `include_past=true` (default: from today only), `page`, `limit` |
+| `GET /api/shifts/open` | `from`, `to`, `position`, `page`, `limit` |
+| `GET /api/swaps/mine` | `status` (`pending`, `accepted`, `approved`, `rejected`, `cancelled`), `side` (`given` = swaps I gave away, `taken` = swaps I took or was offered), `from`, `to` (the shift's date), `page`, `limit` |
+| `GET /api/shifts/week` | `employee` (a user id), `position`, `status` (`assigned` or `open`) — never paged |
+
+**Paging:** without `page`, a route returns a plain list, exactly as before, so existing pages keep working. With `page` (and optionally `limit`, default 20, max 100) it returns:
+
+```json
+{ "items": [ ...this page's shifts... ], "total": 57, "page": 2, "limit": 20, "pages": 3 }
+```
+
+Bad filter values give a `400` with a clear message, e.g. `"from must be a date like 2026-11-01"`, `"from must be before to"`, `"status must be one of: assigned, open"`.
+
+**Example – My shifts with a filter bar and pages (for Masrur, SS-60):**
+
+```js
+// Build the URL only from the filters the user filled in
+const params = new URLSearchParams({ page: currentPage, limit: 10 });
+if (fromInput.value) params.set("from", fromInput.value);       // <input type="date"> gives YYYY-MM-DD
+if (toInput.value) params.set("to", toInput.value);
+if (positionInput.value.trim()) params.set("position", positionInput.value.trim());
+if (pastCheckbox.checked) params.set("include_past", "true");
+
+const result = await api.get("/api/shifts/mine?" + params);
+// result.items -> the shifts to show,  result.total -> e.g. "57 shifts"
+pageLabel.textContent = `Page ${result.page} of ${result.pages}`;
+prevButton.disabled = result.page <= 1;
+nextButton.disabled = result.page >= result.pages;
+```
+
+**Example – rota filter bar (for Lajja, SS-62):**
+
+```js
+const params = new URLSearchParams({ start: monday });
+if (employeeSelect.value) params.set("employee", employeeSelect.value);
+if (statusSelect.value) params.set("status", statusSelect.value);   // "assigned" or "open"
+const week = await api.get("/api/shifts/week?" + params);
+```
+
 #### Swaps (Sprint 2)
 
 | Method | Route | Who | Send | Returns |
@@ -309,7 +354,7 @@ await api.post(`/api/swaps/${swap.id}/reject`);
 | POST | `/api/login` | Public | `{ user: { id, name, role } }` + session cookie |
 | POST | `/api/logout` | All | `{ ok: true }` |
 | GET | `/api/me` | All | `{ id, name, email, role, hourly_rate }` |
-| GET | `/api/shifts/mine` | All | my shifts from today, earliest first |
+| GET | `/api/shifts/mine` | All | my shifts from today, earliest first (filters and paging: see SS-57 section) |
 | GET | `/api/shifts/week?start=` | All | 7 days of shifts with names |
 | GET | `/api/shifts/open` | All | open shifts from today |
 | POST | `/api/shifts` | M | the new shift (201) |

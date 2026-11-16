@@ -4,6 +4,7 @@
 //
 //   POST /api/swaps                { shift_id, to_user_id? }   offer my shift      (employees)
 //   GET  /api/swaps/mine                                       my swaps            (employees)
+//          ?status= &side=given|taken &from= &to= &page= &limit=   (Week 4, SS-57)
 //   POST /api/swaps/:id/accept                                 take a shift        (employees)
 //   GET  /api/swaps/pending                                    waiting for decision (managers)
 //   POST /api/swaps/:id/approve                                approve             (managers)
@@ -19,20 +20,28 @@
 import { db, transaction } from "../db.js";
 import { checkAccess } from "../auth.js";
 import { notify, notifyRole } from "../notify.js";
-import { jsonResponse, errorResponse, readJson, toId } from "../helpers.js";
+import {
+  jsonResponse, errorResponse, readJson, toId,
+  readPaging, readDateFilter, readChoiceFilter,
+} from "../helpers.js";
+import { runList } from "../list.js";
 
 // Every swap we send back has the same shape: the request, its shift,
 // and the names of both employees.
-const SWAP_COLUMNS = `
+const SWAP_FIELDS = `
   swap_requests.id, swap_requests.status, swap_requests.created_at,
   swap_requests.shift_id, shifts.shift_date, shifts.start_time, shifts.end_time, shifts.position,
   swap_requests.from_user_id, giver.name AS from_name,
   swap_requests.to_user_id, taker.name AS to_name
+`;
+const SWAP_FROM = `
   FROM swap_requests
   JOIN shifts ON shifts.id = swap_requests.shift_id
   JOIN users AS giver ON giver.id = swap_requests.from_user_id
   LEFT JOIN users AS taker ON taker.id = swap_requests.to_user_id
 `;
+const SWAP_COLUMNS = SWAP_FIELDS + SWAP_FROM;
+const SWAP_STATUSES = ["pending", "accepted", "approved", "rejected", "cancelled"];
 
 function findSwap(id) {
   return db.prepare(`SELECT ${SWAP_COLUMNS} WHERE swap_requests.id = ?`).get(id);
@@ -114,16 +123,55 @@ export async function handleCreateSwap(request) {
 }
 
 // ----- GET /api/swaps/mine  – swaps I gave away, took, or was offered -----
-export function handleMySwaps(request) {
+// Filters: ?status=pending  ?side=given|taken  ?from= &to= (the shift's date)
+export function handleMySwaps(request, url) {
   const { user, error } = checkAccess(request, "employee");
   if (error) return error;
 
-  const swaps = db.prepare(`
-    SELECT ${SWAP_COLUMNS}
-    WHERE swap_requests.from_user_id = ? OR swap_requests.to_user_id = ?
-    ORDER BY swap_requests.created_at DESC, swap_requests.id DESC
-  `).all(user.id, user.id);
-  return jsonResponse(swaps);
+  const paging = readPaging(url);
+  const status = readChoiceFilter(url, "status", SWAP_STATUSES);
+  const side = readChoiceFilter(url, "side", ["given", "taken"]);
+  const from = readDateFilter(url, "from");
+  const to = readDateFilter(url, "to");
+  const problem = paging.error || status.error || side.error || from.error || to.error;
+  if (problem) return errorResponse(problem, 400);
+  if (from.value && to.value && from.value > to.value) {
+    return errorResponse("from must be before to", 400);
+  }
+
+  const conditions = [];
+  const values = [];
+
+  // Which of my swaps: ones I gave away, ones I took (or was offered), or both.
+  if (side.value === "given") {
+    conditions.push("swap_requests.from_user_id = ?");
+    values.push(user.id);
+  } else if (side.value === "taken") {
+    conditions.push("swap_requests.to_user_id = ?");
+    values.push(user.id);
+  } else {
+    conditions.push("(swap_requests.from_user_id = ? OR swap_requests.to_user_id = ?)");
+    values.push(user.id, user.id);
+  }
+
+  if (status.value) {
+    conditions.push("swap_requests.status = ?");
+    values.push(status.value);
+  }
+  if (from.value) {
+    conditions.push("shifts.shift_date >= ?");
+    values.push(from.value);
+  }
+  if (to.value) {
+    conditions.push("shifts.shift_date <= ?");
+    values.push(to.value);
+  }
+
+  return runList({
+    fields: SWAP_FIELDS, from: SWAP_FROM, conditions, values,
+    order: "ORDER BY swap_requests.created_at DESC, swap_requests.id DESC",
+    paging,
+  });
 }
 
 // ----- POST /api/swaps/:id/accept  – take a colleague's shift -----
