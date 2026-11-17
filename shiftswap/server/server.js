@@ -20,7 +20,7 @@ import {
   handleCreateShift, handleUpdateShift, handleDeleteShift,
 } from "./routes/shifts.js";
 import {
-  handleCreateSwap, handleMySwaps, handleAcceptSwap,
+  handleCreateSwap, handleMySwaps, handleAcceptSwap, handleEditSwap, handleCancelSwap,
   handlePendingSwaps, handleApproveSwap, handleRejectSwap,
 } from "./routes/swaps.js";
 
@@ -63,6 +63,8 @@ const ROUTES = [
   ["POST", "/api/swaps", handleCreateSwap],
   ["GET", "/api/swaps/mine", handleMySwaps],
   ["POST", "/api/swaps/:id/accept", handleAcceptSwap],
+  ["PUT", "/api/swaps/:id", handleEditSwap],
+  ["POST", "/api/swaps/:id/cancel", handleCancelSwap],
   ["GET", "/api/swaps/pending", handlePendingSwaps],
   ["POST", "/api/swaps/:id/approve", handleApproveSwap],
   ["POST", "/api/swaps/:id/reject", handleRejectSwap],

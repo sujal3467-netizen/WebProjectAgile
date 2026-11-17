@@ -23,6 +23,8 @@ deno task reset-db       # wipes the database and reloads the test data
 deno task check-access   # (server running, fresh data) tests who can call every route
 ```
 
+> **After pulling a change to `server/schema.sql`, run `deno task reset-db`.** SQLite can't change a table's rules in place, so the database must be rebuilt. (Week 4: swap requests can now be `cancelled`.)
+
 - Laptop: open http://localhost:8000 (use Chrome phone view: F12 → phone icon).
 - Phone: connect to the same Wi-Fi/hotspot and open `http://<laptop-IP>:8000`
   (Windows: `ipconfig` → IPv4 Address). Allow Deno through the firewall if asked.
@@ -141,7 +143,7 @@ welcome.textContent = `Hello, ${me.name}`;
 | 404 | Doesn't exist | `{ "error": "Shift not found" }` |
 
 - Dates are `"YYYY-MM-DD"`, times are `"HH:MM"` (24-hour).
-- **Access is checked on the server, never only in the page.** Every protected route starts with `checkAccess(request)` (anyone logged in) or `checkAccess(request, "manager")` / `checkAccess(request, "employee")`. Ownership is checked too: you can only offer your own shift, can't accept your own swap, and only see your own swaps. `deno task check-access` tests all of this (18 checks).
+- **Access is checked on the server, never only in the page.** Every protected route starts with `checkAccess(request)` (anyone logged in) or `checkAccess(request, "manager")` / `checkAccess(request, "employee")`. Ownership is checked too: you can only offer your own shift, can't accept your own swap, and only see your own swaps. `deno task check-access` tests all of this (22 checks).
 - **Bikram – notification routes:** use `checkAccess(request)` and only touch the logged-in user's rows, e.g. `UPDATE notifications SET is_read = 1 WHERE id = ? AND user_id = ?`, so nobody can mark someone else's notifications as read.
 
 ### Route list (the contract)
@@ -275,8 +277,12 @@ const week = await api.get("/api/shifts/week?" + params);
 | GET | `/api/swaps/pending` | M | – | requests waiting for a manager (`accepted`) |
 | POST | `/api/swaps/:id/approve` | M | – | request `approved`; shift moves to the new employee |
 | POST | `/api/swaps/:id/reject` | M | – | request `rejected`; shift goes back to the original employee |
+| PUT | `/api/swaps/:id` | E (own request) | `{ to_user_id }` (an employee's id, or `null` for anyone) | the request, now offered to someone else – only while `pending` |
+| POST | `/api/swaps/:id/cancel` | E (own request) | – | request `cancelled`; the shift is `assigned` to you again – while `pending` or `accepted` |
 
 **Swap flow:** `pending` (posted) → `accepted` (a colleague takes it) → `approved` or `rejected` (manager decides). Each step sends a notification to the people involved.
+
+Before the manager decides, the employee who posted it can **cancel** it (`cancelled`), and while it is still `pending` they can **change who it's offered to**. A cancelled request frees the shift, so it can be offered again later.
 
 A swap looks like this:
 
@@ -301,6 +307,10 @@ A swap looks like this:
 | Approving/rejecting before anyone accepted | 400 "Only accepted swaps can be approved – …" (BR10) |
 | Approving/rejecting twice | 400 "This swap has already been decided" |
 | Accepting a swap for a shift that has passed | 400 "This shift has already happened" |
+| Changing or cancelling someone else's request | 403 "You can only change your own swap requests" |
+| Changing a request a colleague already accepted | 400 "Only pending swap requests can be changed – you can still cancel it" |
+| Cancelling twice | 400 "This swap request is already cancelled" |
+| Changing or cancelling after the manager decided | 400 "This swap has already been decided" |
 | Wrong role | 403 "Only employees can do this" / "Only managers can do this" |
 
 **Example – offer a shift, open shifts, my swaps (for Masrur):**
@@ -319,6 +329,19 @@ for (const shift of open) {
 }
 
 const mySwaps = await api.get("/api/swaps/mine");   // newest first, with status
+```
+
+**Example – edit and cancel on My swaps (for Masrur, SS-61):**
+
+```js
+// Show the buttons only on MY requests that are still undecided
+const mine = swap.from_user_id === me.id;
+editButton.hidden   = !(mine && swap.status === "pending");
+cancelButton.hidden = !(mine && (swap.status === "pending" || swap.status === "accepted"));
+
+await api.put(`/api/swaps/${swap.id}`, { to_user_id: 3 });     // offer to Aisha instead
+await api.put(`/api/swaps/${swap.id}`, { to_user_id: null });  // offer to anyone
+await api.post(`/api/swaps/${swap.id}/cancel`);                // take it back
 ```
 
 **Example – pending swaps page (for Lajja):**
@@ -366,6 +389,8 @@ await api.post(`/api/swaps/${swap.id}/reject`);
 | GET | `/api/swaps/pending` | M | swaps waiting for a decision |
 | POST | `/api/swaps/:id/approve` | M | the swap, now `approved` |
 | POST | `/api/swaps/:id/reject` | M | the swap, now `rejected` |
+| PUT | `/api/swaps/:id` | E | the swap, offered to someone else |
+| POST | `/api/swaps/:id/cancel` | E | the swap, now `cancelled` |
 
 **Quick test without a login page:** start the server, open http://localhost:8000, press F12 → **Console**, and type:
 

@@ -43,7 +43,7 @@ CREATE TABLE swap_requests (
   from_user_id INTEGER NOT NULL REFERENCES users(id),  -- who is giving it away
   to_user_id   INTEGER REFERENCES users(id),           -- NULL = offered to anyone
   status       TEXT NOT NULL DEFAULT 'pending'
-               CHECK (status IN ('pending', 'accepted', 'approved', 'rejected')),
+               CHECK (status IN ('pending', 'accepted', 'approved', 'rejected', 'cancelled')),
   created_at   TEXT NOT NULL DEFAULT (datetime('now'))
 );
 

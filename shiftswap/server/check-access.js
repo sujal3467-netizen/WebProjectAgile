@@ -60,6 +60,8 @@ const ROLE_CHECKS = [
   ["POST", "/api/swaps", {}, 401, 400, 403],
   ["GET", "/api/swaps/mine", undefined, 401, 200, 403],
   ["POST", "/api/swaps/99999/accept", undefined, 401, 404, 403],
+  ["PUT", "/api/swaps/99999", {}, 401, 404, 403],
+  ["POST", "/api/swaps/99999/cancel", undefined, 401, 404, 403],
   ["GET", "/api/swaps/pending", undefined, 401, 403, 200],
   ["POST", "/api/swaps/99999/approve", undefined, 401, 403, 404],
   ["POST", "/api/swaps/99999/reject", undefined, 401, 403, 404],
@@ -73,6 +75,8 @@ const OWNERSHIP_CHECKS = [
   ["leo", "POST", "/api/swaps/1/accept", undefined, 400, "can't accept your own swap (BR9)"],
   ["tom", "POST", "/api/swaps", { shift_id: 9, to_user_id: "abc" }, 400, "to_user_id must be a real id"],
   ["tom", "POST", "/api/swaps", { shift_id: 9, to_user_id: 1 }, 400, "can't offer a shift to a manager"],
+  ["tom", "PUT", "/api/swaps/1", { to_user_id: 3 }, 403, "can't change someone else's request"],
+  ["tom", "POST", "/api/swaps/1/cancel", undefined, 403, "can't cancel someone else's request"],
 ];
 
 // ================================ RUN ================================

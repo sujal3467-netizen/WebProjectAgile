@@ -6,6 +6,8 @@
 //   GET  /api/swaps/mine                                       my swaps            (employees)
 //          ?status= &side=given|taken &from= &to= &page= &limit=   (Week 4, SS-57)
 //   POST /api/swaps/:id/accept                                 take a shift        (employees)
+//   PUT  /api/swaps/:id            { to_user_id }              change my request   (employees, Week 4, SS-58)
+//   POST /api/swaps/:id/cancel                                 cancel my request   (employees, Week 4, SS-58)
 //   GET  /api/swaps/pending                                    waiting for decision (managers)
 //   POST /api/swaps/:id/approve                                approve             (managers)
 //   POST /api/swaps/:id/reject                                 reject              (managers)
@@ -15,6 +17,7 @@
 //   accepted  – a colleague took it (still waiting for the manager)
 //   approved  – the manager agreed: the shift now belongs to the colleague
 //   rejected  – the manager said no: the shift stays with the original employee
+//   cancelled – the employee who offered it took it back before the manager decided
 // =============================================================
 
 import { db, transaction } from "../db.js";
@@ -52,6 +55,20 @@ function describeShift(swap) {
   return `${swap.shift_date} ${swap.start_time}–${swap.end_time} (${swap.position})`;
 }
 
+// ----- Check who a swap is offered to (BR9) -----
+// null / left out = anyone; otherwise it must be ANOTHER employee's id.
+// toId turns "3" into 3, so the id is always a number from here on.
+// Returns { value } (an id, or null for anyone) or { error }.
+function readColleague(rawId, user) {
+  if (rawId === undefined || rawId === null) return { value: null };
+  const message = "to_user_id must be another employee's id, or null to offer to anyone";
+  const id = toId(rawId);
+  if (id === null || id === user.id) return { error: message };
+  const colleague = db.prepare("SELECT id FROM users WHERE id = ? AND role = 'employee'").get(id);
+  if (!colleague) return { error: message };
+  return { value: id };
+}
+
 // ================================ EMPLOYEES ================================
 
 // ----- POST /api/swaps  – offer one of my shifts -----
@@ -84,22 +101,9 @@ export async function handleCreateSwap(request) {
   if (active) return errorResponse("This shift already has a swap request", 400);
 
   // BR9: offered to anyone (left out / null) or to ANOTHER employee.
-  // toId turns "3" into 3, so the id is always a number from here on.
-  let toUserId = null;
-  if (body.to_user_id !== undefined && body.to_user_id !== null) {
-    toUserId = toId(body.to_user_id);
-    if (toUserId === null) {
-      return errorResponse("to_user_id must be another employee's id, or left out to offer to anyone", 400);
-    }
-  }
-  if (toUserId !== null) {
-    const colleague = db.prepare(
-      "SELECT id FROM users WHERE id = ? AND role = 'employee'",
-    ).get(toUserId);
-    if (!colleague || colleague.id === user.id) {
-      return errorResponse("to_user_id must be another employee's id, or left out to offer to anyone", 400);
-    }
-  }
+  const colleague = readColleague(body.to_user_id, user);
+  if (colleague.error) return errorResponse(colleague.error, 400);
+  const toUserId = colleague.value;
 
   // Save the request, open the shift and send notifications – all or nothing.
   const swapId = transaction(() => {
@@ -219,6 +223,100 @@ export function handleAcceptSwap(request, url, params) {
   if (!accepted) return errorResponse("This swap is no longer available", 400);
 
   return jsonResponse(findSwap(id));
+}
+
+// ----- Shared checks for changing MY OWN request (edit and cancel) -----
+// Returns { swap, user } if this employee may change it, or { error }.
+function checkMyRequest(request, params) {
+  const { user, error } = checkAccess(request, "employee");
+  if (error) return { error };
+
+  const id = toId(params.id);
+  const swap = id && findSwap(id);
+  if (!swap) return { error: errorResponse("Swap not found", 404) };
+
+  // Only the employee who offered the shift can change or cancel the request.
+  if (swap.from_user_id !== user.id) {
+    return { error: errorResponse("You can only change your own swap requests", 403) };
+  }
+  if (swap.status === "cancelled") {
+    return { error: errorResponse("This swap request is already cancelled", 400) };
+  }
+  if (swap.status === "approved" || swap.status === "rejected") {
+    return { error: errorResponse("This swap has already been decided", 400) };
+  }
+  return { swap, user };
+}
+
+// ----- PUT /api/swaps/:id  – change who my pending request is offered to -----
+// Send { "to_user_id": 3 } for a colleague, or { "to_user_id": null } for anyone.
+export async function handleEditSwap(request, url, params) {
+  const { swap, user, error } = checkMyRequest(request, params);
+  if (error) return error;
+
+  // Once a colleague has accepted, it's waiting for the manager:
+  // it can still be cancelled, but no longer offered to someone else.
+  if (swap.status !== "pending") {
+    return errorResponse("Only pending swap requests can be changed – you can still cancel it", 400);
+  }
+
+  const body = await readJson(request);
+  if (!body || !("to_user_id" in body)) {
+    return errorResponse("Send to_user_id: an employee's id, or null to offer to anyone", 400);
+  }
+  const colleague = readColleague(body.to_user_id, user);
+  if (colleague.error) return errorResponse(colleague.error, 400);
+  const toUserId = colleague.value;
+
+  const changed = transaction(() => {
+    // "AND status = 'pending'" so a colleague accepting at the same moment wins.
+    const result = db.prepare(`
+      UPDATE swap_requests SET to_user_id = ?
+      WHERE id = ? AND status = 'pending'
+    `).run(toUserId, swap.id);
+    if (result.changes === 0) return false;
+
+    const message = `${user.name} offered their shift ${describeShift(swap)}`;
+    if (toUserId !== null) {
+      notify(toUserId, message + " to you", "/employee/");
+    } else {
+      notifyRole("employee", message, "/employee/", user.id);
+    }
+    return true;
+  });
+  if (!changed) {
+    return errorResponse("A colleague has just accepted this swap – you can still cancel it", 400);
+  }
+
+  return jsonResponse(findSwap(swap.id));
+}
+
+// ----- POST /api/swaps/:id/cancel  – take my request back -----
+// Allowed while it is pending or accepted (before the manager decides).
+// The shift was always still mine, so it just becomes "assigned" again.
+export function handleCancelSwap(request, url, params) {
+  const { swap, user, error } = checkMyRequest(request, params);
+  if (error) return error;
+
+  const cancelled = transaction(() => {
+    // Only cancel if it is still undecided (a manager may have just decided).
+    const result = db.prepare(`
+      UPDATE swap_requests SET status = 'cancelled'
+      WHERE id = ? AND status IN ('pending', 'accepted')
+    `).run(swap.id);
+    if (result.changes === 0) return false;
+
+    db.prepare("UPDATE shifts SET status = 'assigned' WHERE id = ?").run(swap.shift_id);
+
+    // Tell whoever was involved.
+    const message = `${user.name} cancelled the swap for ${describeShift(swap)}`;
+    if (swap.to_user_id !== null) notify(swap.to_user_id, message, "/employee/");
+    if (swap.status === "accepted") notifyRole("manager", message, "/manager/");
+    return true;
+  });
+  if (!cancelled) return errorResponse("This swap has already been decided", 400);
+
+  return jsonResponse(findSwap(swap.id));
 }
 
 // ================================ MANAGERS ================================
