@@ -51,9 +51,9 @@
 ## D. Test execution summary
 
 **Total test cases:** 20  
-**Passed:** 0 confirmed  
+**Passed:** 4 confirmed  
 **Failed:** 0 confirmed  
-**Not run:** 20  
+**Not run:** 16  
 
 Update these numbers after executing the tests.
 
