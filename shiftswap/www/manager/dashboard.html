@@ -9,24 +9,27 @@
   <link rel="stylesheet" href="/manager/manager.css" />
 </head>
 <body>
-  <!-- Top bar: page title and the notifications bell (Bikram's page) -->
-  <header class="top-bar">
-    <h1>Dashboard</h1>
-    <div class="top-bar-actions">
-      <a href="/notifications.html" title="Notifications">🔔</a>
+  <!-- Navbar: the same layout as the employee pages, from Bikram's style guide (SS-65) -->
+  <nav class="navbar">
+    <strong>ShiftSwap <span class="nav-role">Manager</span></strong>
+    <div class="nav-links">
+      <a href="/manager/dashboard.html" class="active" aria-current="page">Dashboard</a>
+      <a href="/manager/rota.html">Rota</a>
+      <a href="/manager/swaps.html">Approvals</a>
+      <a href="/manager/staff.html">Staff</a>
+      <a href="/notifications.html" title="Notifications" aria-label="Notifications">🔔</a>
       <button id="logout-button" class="btn btn-secondary" type="button">Log out</button>
     </div>
-  </header>
-
-  <!-- Manager tabs: phone = bottom bar, laptop = under the header -->
-  <nav class="tab-bar">
-    <a href="dashboard.html" class="active"><span>🏠</span>Dashboard</a>
-    <a href="rota.html"><span>📅</span>Rota</a>
-    <a href="swaps.html"><span>✅</span>Approvals</a>
-    <a href="staff.html"><span>👥</span>Staff</a>
   </nav>
 
-  <main class="page">
+  <main class="container">
+    <div class="page-header">
+      <div>
+        <h1>Dashboard</h1>
+        <p class="text-muted">Today's shifts, gaps in the rota and swaps waiting for you</p>
+      </div>
+      <a href="create-shift.html" class="btn btn-primary">+ Create shift</a>
+    </div>
     <div id="message" hidden></div>
 
     <p id="welcome" class="card-sub"></p>
@@ -50,7 +53,6 @@
     <!-- Warning appears only when shifts have nobody assigned -->
     <div id="uncovered-warning" class="message message-warning" hidden></div>
 
-    <a href="create-shift.html" class="btn btn-primary btn-block">+ Create shift</a>
 
     <h2>Who's working today</h2>
     <div id="today-list"><p class="loading">Loading…</p></div>

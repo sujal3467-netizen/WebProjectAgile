@@ -9,28 +9,29 @@
   <link rel="stylesheet" href="/manager/manager.css" />
 </head>
 <body>
-  <!-- Top bar: page title and the notifications bell (Bikram's page) -->
-  <header class="top-bar">
-    <h1>Swap Approvals</h1>
-    <div class="top-bar-actions">
-      <a href="/notifications.html" title="Notifications">🔔</a>
+  <!-- Navbar: the same layout as the employee pages, from Bikram's style guide (SS-65) -->
+  <nav class="navbar">
+    <strong>ShiftSwap <span class="nav-role">Manager</span></strong>
+    <div class="nav-links">
+      <a href="/manager/dashboard.html">Dashboard</a>
+      <a href="/manager/rota.html">Rota</a>
+      <a href="/manager/swaps.html" class="active" aria-current="page">Approvals</a>
+      <a href="/manager/staff.html">Staff</a>
+      <a href="/notifications.html" title="Notifications" aria-label="Notifications">🔔</a>
       <button id="logout-button" class="btn btn-secondary" type="button">Log out</button>
     </div>
-  </header>
-
-  <!-- Manager tabs: phone = bottom bar, laptop = under the header -->
-  <nav class="tab-bar">
-    <a href="dashboard.html"><span>🏠</span>Dashboard</a>
-    <a href="rota.html"><span>📅</span>Rota</a>
-    <a href="swaps.html" class="active"><span>✅</span>Approvals</a>
-    <a href="staff.html"><span>👥</span>Staff</a>
   </nav>
 
-  <main class="page">
+  <main class="container">
+    <div class="page-header">
+      <div>
+        <h1>Swap Approvals</h1>
+        <p class="text-muted">Swaps a colleague has accepted, waiting for your decision</p>
+      </div>
+      
+    </div>
     <div id="message" hidden></div>
 
-    <p class="card-sub">These swaps have been accepted by a colleague and need your approval.
-      Approving moves the shift to the new person.</p>
 
     <div id="swap-list"><p class="loading">Loading…</p></div>
   </main>
