@@ -4,7 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ShiftSwap - Open Shifts</title>
+  <!-- Bikram's shared styles, then the extra employee styles -->
   <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/employee.css">
 </head>
 <body>
   <nav class="navbar">
@@ -22,14 +24,43 @@
       <h1>Open Shifts</h1>
     </div>
 
+    <form id="filter-form" class="card filter-bar">
+      <div class="grid grid-2">
+        <div class="form-group">
+          <label for="filter-from">From</label>
+          <input id="filter-from" type="date">
+        </div>
+        <div class="form-group">
+          <label for="filter-to">To</label>
+          <input id="filter-to" type="date">
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="filter-position">Position</label>
+        <input id="filter-position" type="text" placeholder="e.g. Barista" maxlength="50">
+      </div>
+      <div class="flex">
+        <button class="btn btn-primary" type="submit">Apply filters</button>
+        <button id="clear-button" class="btn btn-secondary" type="button">Clear</button>
+      </div>
+    </form>
+
+    <p id="open-error" class="error-text hidden"></p>
+    <p id="open-success" class="success-text hidden"></p>
     <p id="loading-message" class="text-muted">Loading open shifts...</p>
-    <p id="open-error" class="hidden" style="color: var(--danger);"></p>
-    <p id="open-success" class="hidden" style="color: var(--success);"></p>
 
     <div id="open-list"></div>
+
+    <p id="result-count" class="text-muted hidden mb-3"></p>
+    <div id="pager" class="pager hidden">
+      <button id="prev-button" class="btn btn-secondary" type="button">Previous</button>
+      <span id="page-label" class="text-muted"></span>
+      <button id="next-button" class="btn btn-secondary" type="button">Next</button>
+    </div>
   </main>
 
   <script src="/js/api.js"></script>
+  <script src="/employee/js/common.js"></script>
   <script src="/employee/js/open-shifts.js"></script>
 </body>
 </html>
