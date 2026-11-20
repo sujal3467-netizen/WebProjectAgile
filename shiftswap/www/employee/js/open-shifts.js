@@ -30,11 +30,11 @@ function whyNotAvailable(shift) {
   return "";
 }
 
-// One ticket per open shift, with an Accept button when I can take it.
+// One row per open shift, with an Accept button when I can take it.
 function makeCard(shift) {
-  const { ticket, body } = makeTicket(shift);
+  const { row, body } = makeShiftRow(shift);
   if (shift.assigned_name) {
-    body.append(makeElement("p", "text-muted", `Offered by ${shift.assigned_name}`));
+    body.append(makeElement("p", "muted", `Offered by ${shift.assigned_name}`));
   }
   if (shift.offered_to === myId) {
     body.append(makeElement("span", "status status-pending", "Offered to you"));
@@ -42,8 +42,8 @@ function makeCard(shift) {
 
   const reason = whyNotAvailable(shift);
   if (reason) {
-    body.append(makeElement("p", "text-muted", reason));
-    return ticket;
+    body.append(makeElement("p", "muted", reason));
+    return row;
   }
 
   const actions = makeElement("div", "card-actions");
@@ -64,7 +64,7 @@ function makeCard(shift) {
   });
   actions.append(button);
   body.append(actions);
-  return ticket;
+  return row;
 }
 
 function filtersAreUsed() {
@@ -93,7 +93,7 @@ async function loadShifts() {
       const text = filtersAreUsed()
         ? "No open shifts match your filters. Try different dates or clear the filters."
         : "There are no open shifts right now.";
-      listBox.append(makeElement("p", "text-muted", text));
+      listBox.append(makeElement("p", "empty", text));
     }
     for (const shift of result.items) {
       listBox.append(makeCard(shift));

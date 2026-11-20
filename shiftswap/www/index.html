@@ -3,53 +3,43 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ShiftSwap - Log in</title>
-  <!-- Bikram's shared styles -->
+  <title>Log in – ShiftSwap</title>
+  <!-- Bikram's shared styles, then the employee look -->
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/employee.css">
 </head>
-<body>
-  <!-- container centres the page; max-width keeps the login box narrow on a laptop -->
-  <main class="container container-narrow">
+<body class="employee login-page">
+  <main class="login-box">
 
-    <h1 class="text-center">ShiftSwap</h1>
-    <p class="text-muted text-center">Log in to see your shifts</p>
+    <!-- The same logo as the sidebar -->
+    <div class="login-brand">
+      <span class="brand-mark">⇄</span>
+      <span class="login-name">ShiftSwap</span>
+    </div>
+    <p class="login-sub">Log in to see your shifts</p>
 
-    <!-- card = white rounded box -->
-    <section class="card">
-
+    <section class="panel">
       <!-- JavaScript (login.js) finds this form by its id -->
       <form id="login-form">
-
-        <!-- form-group adds the spacing under each label + input pair -->
         <div class="form-group">
-          <!-- "for" matches the input's "id": tapping the label selects the box -->
           <label for="email">Email</label>
-          <input type="email" id="email" name="email"
-                 autocomplete="email" required>
+          <input type="email" id="email" name="email" autocomplete="email" required>
         </div>
 
         <div class="form-group">
           <label for="password">Password</label>
-          <input type="password" id="password" name="password"
-                 autocomplete="current-password" required>
+          <input type="password" id="password" name="password" autocomplete="current-password" required>
         </div>
 
-        <!-- "hidden" is Bikram's class that hides this. JavaScript removes it on a failed login.
-             The red colour uses his --danger variable until he adds an error class. -->
-        <p id="login-error" class="error-text hidden">
-          Wrong email or password
-        </p>
+        <!-- "hidden" hides it. login.js removes it after a failed login. -->
+        <p id="login-error" class="message message-error hidden">Wrong email or password</p>
 
-        <!-- Bikram's blue main button -->
-        <button class="btn btn-primary" type="submit">Log in</button>
+        <button class="btn btn-primary btn-block" type="submit">Log in</button>
       </form>
-
     </section>
   </main>
 
-  <!-- The scripts go at the END of the body, so the form already exists when they run.
-       api.js first, because login.js uses it. -->
+  <!-- api.js first, because login.js uses it. -->
   <script src="/js/api.js"></script>
   <script src="/js/login.js"></script>
 </body>
