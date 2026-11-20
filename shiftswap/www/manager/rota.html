@@ -4,75 +4,84 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Weekly Rota – ShiftSwap Manager</title>
-  <!-- Bikram's shared styles first, then the extra manager styles -->
+  <!-- Bikram's shared styles first (colours, buttons, forms), then the manager look -->
   <link rel="stylesheet" href="/css/style.css" />
   <link rel="stylesheet" href="/manager/manager.css" />
 </head>
-<body>
-  <!-- Navbar: the same layout as the employee pages, from Bikram's style guide (SS-65) -->
-  <nav class="navbar">
-    <strong>ShiftSwap <span class="nav-role">Manager</span></strong>
-    <div class="nav-links">
-      <a href="/manager/dashboard.html">Dashboard</a>
-      <a href="/manager/rota.html" class="active" aria-current="page">Rota</a>
-      <a href="/manager/swaps.html">Approvals</a>
-      <a href="/manager/staff.html">Staff</a>
-      <a href="/notifications.html" title="Notifications" aria-label="Notifications">🔔</a>
-      <button id="logout-button" class="btn btn-secondary" type="button">Log out</button>
+<body class="manager">
+  <!-- Sidebar on laptops, bottom tab bar on phones (manager.css) -->
+  <aside class="sidebar no-print">
+    <a class="brand" href="/manager/dashboard.html">
+      <span class="brand-mark">⇄</span>
+      <span class="brand-text">ShiftSwap<small>Manager</small></span>
+    </a>
+    <nav class="side-nav" aria-label="Manager pages">
+        <a href="/manager/dashboard.html"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg><span>Dashboard</span></a>
+        <a href="/manager/rota.html" class="active" aria-current="page"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span>Rota</span></a>
+        <a href="/manager/swaps.html"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h14l-4-4M20 16H6l4 4"/></svg><span>Approvals</span> <span class="nav-badge" data-swap-count hidden></span></a>
+        <a href="/manager/staff.html"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="4"/><path d="M2 21v-1a7 7 0 0 1 14 0v1M16 3.5a4 4 0 0 1 0 8M22 21v-1a6 6 0 0 0-4-5.7"/></svg><span>Staff</span></a>
+        <a href="/notifications.html"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0"/></svg><span>Alerts</span></a>
+    </nav>
+    <div class="side-foot">
+      <div class="me">
+        <span class="avatar" id="me-avatar">–</span>
+        <span class="me-text"><strong id="me-name">Manager</strong><small>Manager</small></span>
+      </div>
+      <button id="logout-button" class="side-logout" type="button"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg><span>Log out</span></button>
     </div>
-  </nav>
+  </aside>
 
-  <main class="container">
-    <div class="page-header">
+  <div class="shell">
+    <header class="hero">
       <div>
+        <p class="eyebrow">Planning</p>
         <h1>Weekly Rota</h1>
-        <p class="text-muted">Every shift from Monday to Sunday</p>
+        <p class="hero-sub">Every shift from Monday to Sunday</p>
       </div>
-      <div class="flex no-print"><button id="print-button" class="btn btn-secondary" type="button">Print</button><a href="create-shift.html" class="btn btn-primary">+ Create shift</a></div>
-    </div>
-    <div id="message" hidden></div>
+      <div class="hero-actions no-print"><button id="print-button" class="btn btn-ghost" type="button">Print</button><a href="create-shift.html" class="btn btn-light">+ Create shift</a></div>
+    </header>
 
-    <!-- Move between weeks -->
-    <div class="card week-picker">
-      <button id="prev-week" class="btn btn-secondary btn-small no-print">◀ Prev</button>
-      <strong id="week-label">This week</strong>
-      <button id="next-week" class="btn btn-secondary btn-small no-print">Next ▶</button>
-    </div>
+    <main class="content">
+      <div id="message" hidden></div>
+      <!-- Week switcher + filter bar (SS-62). The filters are sent to the
+           server (SS-57), so the rota stays fast even with lots of shifts. -->
+      <div class="toolbar">
+        <div class="week-picker">
+          <button id="prev-week" class="round-btn no-print" type="button" aria-label="Previous week">‹</button>
+          <strong id="week-label">This week</strong>
+          <button id="next-week" class="round-btn no-print" type="button" aria-label="Next week">›</button>
+        </div>
 
-    <!-- Filter bar (SS-62). The choices are sent to the server (SS-57),
-         so the rota stays fast even when there are lots of shifts. -->
-    <form id="filter-form" class="card filter-bar no-print">
-      <div class="grid grid-3">
-        <div class="form-group">
-          <label for="filter-employee">Employee</label>
-          <select id="filter-employee">
-            <option value="">All employees</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="filter-position">Position</label>
-          <input id="filter-position" type="text" placeholder="e.g. Barista" maxlength="50" />
-        </div>
-        <div class="form-group">
-          <label for="filter-status">Status</label>
-          <select id="filter-status">
-            <option value="">All shifts</option>
-            <option value="assigned">Assigned</option>
-            <option value="open">Open or up for swap</option>
-          </select>
-        </div>
+        <form id="filter-form" class="filter-bar no-print">
+          <label class="field">
+            <span>Employee</span>
+            <select id="filter-employee"><option value="">All employees</option></select>
+          </label>
+          <label class="field">
+            <span>Position</span>
+            <input id="filter-position" type="text" placeholder="e.g. Barista" maxlength="50" />
+          </label>
+          <label class="field">
+            <span>Status</span>
+            <select id="filter-status">
+              <option value="">All shifts</option>
+              <option value="assigned">Assigned</option>
+              <option value="open">Open or up for swap</option>
+            </select>
+          </label>
+          <div class="filter-buttons">
+            <button class="btn btn-primary" type="submit">Apply</button>
+            <button id="clear-button" class="btn btn-secondary" type="button">Clear</button>
+          </div>
+        </form>
       </div>
-      <div class="flex">
-        <button class="btn btn-primary" type="submit">Apply filters</button>
-        <button id="clear-button" class="btn btn-secondary" type="button">Clear</button>
-      </div>
-    </form>
 
-    <p id="result-count" class="text-muted"></p>
+      <p id="result-count" class="result-count"></p>
 
-    <!-- One section per day, filled in by rota.js -->
-    <div id="rota"><p class="loading">Loading…</p></div>
-  </main>
+      <!-- The week as 7 columns (laptop) or one day per row (phone), filled in by rota.js -->
+      <div id="rota" class="week-grid"><p class="loading">Loading…</p></div>
+    </main>
+  </div>
 
   <!-- Order matters: api.js, then sample data, then shared code, then this page -->
   <script src="/js/api.js"></script>

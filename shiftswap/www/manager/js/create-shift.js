@@ -40,7 +40,7 @@ async function loadShiftToEdit() {
     return;
   }
 
-  document.querySelector(".page-header h1").textContent = "Edit Shift";
+  document.querySelector(".hero h1").textContent = "Edit Shift";
   document.title = "Edit Shift – ShiftSwap Manager";
   saveButton.textContent = "Save changes";
 
@@ -50,6 +50,7 @@ async function loadShiftToEdit() {
   positionInput.value = shift.position;
   employeeInput.value = shift.assigned_to || "";
   showLength();
+  updatePreview();
 }
 
 // Show "6 hours" under the times so the manager can check
@@ -59,6 +60,25 @@ function showLength() {
     const hours = hoursBetween(startInput.value, endInput.value);
     lengthText.textContent = hours > 0 ? "Shift length: " + hours + " hours" : "";
   }
+}
+
+// Live preview: show the shift as it will look on the rota
+function updatePreview() {
+  const card = document.getElementById("preview-card");
+  const start = startInput.value || "--:--";
+  const end = endInput.value || "--:--";
+  const position = positionInput.value;
+  const who = employeeInput.value ? employeeInput.options[employeeInput.selectedIndex].text : "";
+
+  card.className = "shift " + (position ? positionClass(position) : "pos-none");
+  card.querySelector(".shift-time").textContent = start + " – " + end;
+  card.querySelector(".shift-pos").textContent = position || "Choose a position";
+  card.querySelector(".shift-who").innerHTML = who
+    ? avatar(who) + '<span class="who-name">' + escapeHtml(who) + "</span>"
+    : '<span class="tag tag-open">Open</span>';
+  document.getElementById("preview-date").textContent = dateInput.value
+    ? niceDate(dateInput.value)
+    : "No date yet";
 }
 
 // Check the form. Returns an error message, or "" if everything is fine.
@@ -113,6 +133,7 @@ async function saveShift(event) {
       );
       form.reset(); // ready for the next one
       document.getElementById("shift-length").textContent = "";
+      updatePreview();
     }
   } catch (error) {
     showMessage("Could not save the shift: " + error.message, "error");
@@ -134,4 +155,6 @@ async function start() {
 startInput.addEventListener("change", showLength);
 endInput.addEventListener("change", showLength);
 form.addEventListener("submit", saveShift);
+form.addEventListener("input", updatePreview);
+form.addEventListener("change", updatePreview);
 start();

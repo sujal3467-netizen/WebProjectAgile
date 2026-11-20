@@ -13,7 +13,7 @@
 //   shifts: GET/POST/PUT/DELETE /api/shifts...      (SS-39, merged)
 //   swaps:  GET /api/swaps/pending, approve, reject (SS-47, SS-48)
 //   staff:  GET /api/staff                           (not planned yet)
-   const REAL = { shifts: true, swaps: true, staff: false };
+const REAL = { shifts: true, swaps: true, staff: false };
 
 // true while EVERYTHING is still sample data (no login needed)
 const USE_SAMPLE_DATA = !REAL.shifts && !REAL.swaps && !REAL.staff;
@@ -109,22 +109,81 @@ function whoIsOn(shift) {
   return escapeHtml(shift.assigned_name);
 }
 
+// ---------- Small pieces of design used on several pages ----------
+
+// "Aisha Khan" -> "AK"
+function initials(name) {
+  if (!name) return "?";
+  const parts = name.trim().split(/\s+/);
+  const first = parts[0][0] || "";
+  const last = parts.length > 1 ? parts[parts.length - 1][0] : "";
+  return (first + last).toUpperCase();
+}
+
+// A round coloured circle with initials. The same name always gets
+// the same colour (one of 6 colours in manager.css).
+function avatar(name) {
+  let total = 0;
+  for (const letter of name || "") total += letter.charCodeAt(0);
+  return `<span class="avatar avatar-${total % 6}" aria-hidden="true">${escapeHtml(initials(name))}</span>`;
+}
+
+// Each position gets its own colour stripe: "Barista" -> "pos-barista"
+function positionClass(position) {
+  const known = ["barista", "till", "stock", "kitchen", "cleaner", "supervisor"];
+  const name = String(position || "").toLowerCase();
+  return known.includes(name) ? "pos-" + name : "pos-other";
+}
+
+// Who is on a shift, with an avatar (used by the new design)
+function personTag(shift) {
+  if (shift.status === "open" && shift.assigned_name) {
+    return avatar(shift.assigned_name) + `<span class="who-name">${escapeHtml(shift.assigned_name)}</span><span class="tag tag-swap">Up for swap</span>`;
+  }
+  if (shift.status === "open") {
+    return '<span class="tag tag-open">Open – nobody assigned</span>';
+  }
+  return avatar(shift.assigned_name) + `<span class="who-name">${escapeHtml(shift.assigned_name)}</span>`;
+}
+
 // ---------- 2. Only managers allowed ----------
 
 async function checkManager() {
-  if (USE_SAMPLE_DATA) return { id: 1, name: "Priya Shah", role: "manager" }; // same as seed.sql
-  try {
-    const me = await api.get("/api/me");
-    if (me.role !== "manager") {
-      window.location.href = "/"; // employees go back to the login page
+  let me = { id: 1, name: "Priya Shah", role: "manager" }; // same as seed.sql
+  if (!USE_SAMPLE_DATA) {
+    try {
+      me = await api.get("/api/me");
+      if (me.role !== "manager") {
+        window.location.href = "/"; // employees go back to the login page
+      }
+    } catch (error) {
+      window.location.href = "/"; // not logged in
+      return me;
     }
-    return me;
-  } catch (error) {
-    window.location.href = "/"; // not logged in
   }
+  fillShell(me);
+  return me;
 }
 
-// Log out button in the top bar (same as Masrur's employee pages)
+// Put the manager's name in the sidebar and the number of swaps
+// waiting on the "Approvals" link, so it is seen from every page
+function fillShell(me) {
+  const nameBox = document.getElementById("me-name");
+  const avatarBox = document.getElementById("me-avatar");
+  if (nameBox) nameBox.textContent = me.name;
+  if (avatarBox) avatarBox.textContent = initials(me.name);
+
+  getPendingSwaps()
+    .then((swaps) => {
+      document.querySelectorAll("[data-swap-count]").forEach((badge) => {
+        badge.textContent = swaps.length;
+        badge.hidden = swaps.length === 0;
+      });
+    })
+    .catch(() => {}); // the badge is only extra, so ignore errors
+}
+
+// Log out button in the sidebar
 async function logOut() {
   try {
     await api.post("/api/logout");
@@ -134,7 +193,8 @@ async function logOut() {
   window.location.href = "/";
 }
 document.addEventListener("click", (event) => {
-  if (event.target.id === "logout-button") logOut();
+  // closest(): the click may land on the icon inside the button
+  if (event.target.closest("#logout-button")) logOut();
 });
 
 // ---------- 3. Sample data store (only used while USE_SAMPLE_DATA) ----------

@@ -2,6 +2,7 @@
 // rota.js  –  Weekly Rota (Lajja)
 // View every shift in a week (Mon–Sun), move between weeks,
 // edit a shift (opens the Create Shift form) or delete it.
+// Design v2: the week is shown as 7 day columns with colour-coded shift cards.
 // SS-62: filter bar – by employee, position and status. The filters
 // are sent to the server, so only matching shifts are loaded.
 // =============================================================
@@ -43,24 +44,19 @@ function rememberEmployees(people) {
 }
 rememberEmployees(buildSampleData().staff);
 
-// Build the HTML for one shift
+// Build the HTML for one shift: a small card with a colour stripe
+// for its position (colours are in manager.css)
 function rotaShift(shift) {
-  const who = whoIsOn(shift);
-
   return `
-    <div class="card">
-      <div class="card-row">
-        <div>
-          <div class="card-title">${shift.start_time}–${shift.end_time} · ${escapeHtml(shift.position)}</div>
-          <div class="card-sub">${who} · ${hoursBetween(shift.start_time, shift.end_time)} h</div>
-        </div>
-        <div class="btn-group no-print">
-          <a class="btn btn-secondary btn-small"
-             href="create-shift.html?id=${shift.id}&date=${shift.shift_date}">Edit</a>
-          <button class="btn btn-danger btn-small" data-delete="${shift.id}">Delete</button>
-        </div>
+    <article class="shift ${positionClass(shift.position)}">
+      <div class="shift-time">${shift.start_time} – ${shift.end_time}<span>${hoursBetween(shift.start_time, shift.end_time)} h</span></div>
+      <div class="shift-pos">${escapeHtml(shift.position)}</div>
+      <div class="shift-who">${personTag(shift)}</div>
+      <div class="shift-actions no-print">
+        <a class="link-btn" href="create-shift.html?id=${shift.id}&date=${shift.shift_date}">Edit</a>
+        <button class="link-btn link-danger" type="button" data-delete="${shift.id}">Delete</button>
       </div>
-    </div>`;
+    </article>`;
 }
 
 async function loadRota() {
@@ -81,22 +77,34 @@ async function loadRota() {
       ? `${shifts.length} ${word} match your filters this week.`
       : `${shifts.length} ${word} this week.`;
 
-    // Go through the 7 days and list each day's shifts.
+    // Go through the 7 days: one column per day.
     // With a filter on, days without matching shifts are left out.
+    const today = formatDate(new Date());
     let html = "";
+    let columns = 0;
     for (let i = 0; i < 7; i++) {
       const date = addDays(currentMonday, i);
       const dayShifts = shifts.filter((s) => s.shift_date === date);
       if (dayShifts.length === 0 && filtersAreOn()) continue;
+      columns++;
 
-      html += `<h2>${niceDate(date)}</h2>`;
-      html += dayShifts.length > 0
-        ? dayShifts.map(rotaShift).join("")
-        : '<p class="empty">No shifts.</p>';
+      const [dayName, dayNumber, month] = niceDate(date).split(" ");
+      html += `
+        <section class="day${date === today ? " is-today" : ""}">
+          <header class="day-head">
+            <span class="day-name">${dayName}</span>
+            <span class="day-date">${dayNumber} ${month}</span>
+            <span class="day-count">${dayShifts.length}</span>
+          </header>
+          <div class="day-shifts">
+            ${dayShifts.length > 0 ? dayShifts.map(rotaShift).join("") : '<p class="empty">No shifts</p>'}
+          </div>
+        </section>`;
     }
     if (html === "") {
-      html = '<p class="empty">No shifts match your filters this week. Try another week or press Clear.</p>';
+      html = '<p class="empty empty-big">No shifts match your filters this week. Try another week or press Clear.</p>';
     }
+    rota.style.setProperty("--columns", Math.max(columns, 1));
     rota.innerHTML = html;
   } catch (error) {
     rota.innerHTML = "";

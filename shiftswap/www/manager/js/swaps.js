@@ -8,17 +8,22 @@
 
 function swapCard(swap) {
   return `
-    <div class="card">
-      <div class="card-title">${niceDate(swap.shift_date)} · ${swap.start_time}–${swap.end_time}</div>
-      <div class="card-sub">${escapeHtml(swap.position)}</div>
-      <p>
-        <strong>${escapeHtml(swap.from_name)}</strong> ➜ <strong>${escapeHtml(swap.to_name)}</strong>
-      </p>
-      <div class="btn-group">
-        <button class="btn btn-success" style="flex:1" data-approve="${swap.id}">Approve</button>
-        <button class="btn btn-danger" style="flex:1" data-reject="${swap.id}">Reject</button>
+    <article class="swap-card ${positionClass(swap.position)}">
+      <div class="swap-when">
+        <span class="swap-day">${niceDate(swap.shift_date)}</span>
+        <strong>${swap.start_time} – ${swap.end_time}</strong>
+        <span class="tag">${escapeHtml(swap.position)}</span>
       </div>
-    </div>`;
+      <div class="swap-people">
+        <div class="swap-person">${avatar(swap.from_name)}<span><small>From</small>${escapeHtml(swap.from_name)}</span></div>
+        <span class="swap-arrow" aria-label="to">→</span>
+        <div class="swap-person">${avatar(swap.to_name)}<span><small>To</small>${escapeHtml(swap.to_name)}</span></div>
+      </div>
+      <div class="swap-buttons">
+        <button class="btn btn-success" type="button" data-approve="${swap.id}">Approve</button>
+        <button class="btn btn-secondary btn-reject" type="button" data-reject="${swap.id}">Reject</button>
+      </div>
+    </article>`;
 }
 
 async function loadSwaps() {
@@ -28,7 +33,7 @@ async function loadSwaps() {
     list.innerHTML =
       swaps.length > 0
         ? swaps.map(swapCard).join("")
-        : '<p class="empty">No swaps waiting. You\'re all caught up. ✅</p>';
+        : '<div class="all-done"><span>✓</span><strong>All caught up</strong><p>No swaps are waiting for you.</p></div>';
   } catch (error) {
     list.innerHTML = "";
     showMessage("Could not load swaps: " + error.message, "error");
