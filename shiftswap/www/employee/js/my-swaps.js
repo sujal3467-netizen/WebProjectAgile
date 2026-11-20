@@ -88,14 +88,14 @@ function closePanel(card) {
 async function openEditPanel(card, swap) {
   closePanel(card);
   const panel = makeElement("div", "card-panel");
-  panel.append(makeElement("p", "text-muted", "Loading colleagues..."));
+  panel.append(makeElement("p", "muted", "Loading colleagues..."));
   card.append(panel);
 
   let people;
   try {
     people = await loadColleagues();
   } catch (error) {
-    panel.replaceChildren(makeElement("p", "error-text", error.message));
+    panel.replaceChildren(makeElement("p", "message message-error", error.message));
     return;
   }
 
@@ -174,10 +174,10 @@ function openCancelPanel(card, swap) {
   });
 }
 
-// ----- One ticket per swap -----
+// ----- One row per swap -----
 function makeCard(swap) {
-  const { ticket, body } = makeTicket(swap);
-  body.append(makeElement("p", "text-muted", describe(swap)));
+  const { row, body } = makeShiftRow(swap);
+  body.append(makeElement("p", "muted", describe(swap)));
   body.append(makeElement("span", `status ${STATUS_CLASS[swap.status] || ""}`, swap.status));
 
   // Buttons only on MY requests that can still be changed.
@@ -201,7 +201,7 @@ function makeCard(swap) {
     }
     body.append(actions);
   }
-  return ticket;
+  return row;
 }
 
 function filtersAreUsed() {
@@ -232,7 +232,7 @@ async function loadSwaps() {
       const text = filtersAreUsed()
         ? "No requests match your filters. Try different filters or clear them."
         : "You have no swap requests yet.";
-      listBox.append(makeElement("p", "text-muted", text));
+      listBox.append(makeElement("p", "empty", text));
     }
     for (const swap of result.items) {   // the server sorts newest first
       listBox.append(makeCard(swap));

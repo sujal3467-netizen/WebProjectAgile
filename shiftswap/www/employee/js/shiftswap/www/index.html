@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Log in – ShiftSwap</title>
+  <!-- Bikram's shared styles, then the employee look -->
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/employee.css">
+</head>
+<body class="employee login-page">
+  <main class="login-box">
+
+    <!-- The same logo as the sidebar -->
+    <div class="login-brand">
+      <span class="brand-mark">⇄</span>
+      <span class="login-name">ShiftSwap</span>
+    </div>
+    <p class="login-sub">Log in to see your shifts</p>
+
+    <section class="panel">
+      <!-- JavaScript (login.js) finds this form by its id -->
+      <form id="login-form">
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" autocomplete="email" required>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" autocomplete="current-password" required>
+        </div>
+
+        <!-- "hidden" hides it. login.js removes it after a failed login. -->
+        <p id="login-error" class="message message-error hidden">Wrong email or password</p>
+
+        <button class="btn btn-primary btn-block" type="submit">Log in</button>
+      </form>
+    </section>
+  </main>
+
+  <!-- api.js first, because login.js uses it. -->
+  <script src="/js/api.js"></script>
+  <script src="/js/login.js"></script>
+</body>
+</html>
