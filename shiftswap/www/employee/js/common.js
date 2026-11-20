@@ -33,6 +33,39 @@ function formatDayName(date) {
   return date.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
 }
 
+// ----- A shift "ticket": coloured date stub on the left, details on the right -----
+// The stub colour comes from the position (see employee.css), so a Barista
+// shift and a Stock shift look different at a glance.
+// Works for a shift or a swap: both have shift_date, start_time, end_time, position.
+// Returns { ticket, body }: add extra lines to `body`, then put `ticket` on the page.
+function makeTicket(shift) {
+  const date = parseDate(shift.shift_date);
+
+  const ticket = makeElement("article", "ticket");
+  ticket.dataset.position = shift.position.trim().toLowerCase();
+
+  const stub = makeElement("div", "ticket-stub");
+  stub.append(
+    makeElement("span", "stub-weekday", date.toLocaleDateString("en-GB", { weekday: "short" })),
+    makeElement("span", "stub-day", String(date.getDate())),
+    makeElement("span", "stub-month", date.toLocaleDateString("en-GB", { month: "short" })),
+  );
+
+  const body = makeElement("div", "ticket-body");
+  body.append(
+    makeElement("p", "ticket-time", `${shift.start_time} \u2013 ${shift.end_time}`),
+    makeElement("p", "ticket-position", shift.position),
+  );
+
+  ticket.append(stub, body);
+  return { ticket, body };
+}
+
+// Underline the link of the page we are on.
+for (const link of document.querySelectorAll(".nav-links a")) {
+  if (link.pathname === location.pathname) link.setAttribute("aria-current", "page");
+}
+
 // Show a message in a box, or hide the box if the text is empty.
 function setMessage(box, text) {
   box.textContent = text || "";

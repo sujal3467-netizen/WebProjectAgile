@@ -53,22 +53,19 @@ function groupByWeek(shifts) {
   return [...groups.values()];
 }
 
-// Build the card for one shift.
+// Build the ticket for one shift.
 function makeShiftCard(shift) {
-  const card = makeElement("article", "card mt-3");
-  card.append(makeElement("h3", "card-title", formatDayName(parseDate(shift.shift_date))));
-  card.append(makeElement("p", "card-description",
-    `${shift.start_time} to ${shift.end_time} - ${shift.position}`));
+  const { ticket, body } = makeTicket(shift);
 
   // A shift marked "open" has been offered to other employees.
   if (shift.status === "open") {
-    card.append(makeElement("span", "status status-open", "Offered for swap"));
+    body.append(makeElement("span", "status status-open", "Offered for swap"));
   }
   // Only shows when "Show past shifts" is ticked.
   if (shift.shift_date < toDateText(new Date())) {
-    card.append(makeElement("span", "status status-cancelled", "Past shift"));
+    body.append(makeElement("span", "status status-cancelled", "Past shift"));
   }
-  return card;
+  return ticket;
 }
 
 // Has the user typed or ticked any filter?
@@ -89,7 +86,7 @@ function showShifts(shifts) {
   }
 
   for (const group of groupByWeek(shifts)) {
-    listBox.append(makeElement("h2", "mt-3", `Week of ${formatShortDate(group.monday)}`));
+    listBox.append(makeElement("h2", "", `Week of ${formatShortDate(group.monday)}`));
     for (const shift of group.shifts) {
       listBox.append(makeShiftCard(shift));
     }

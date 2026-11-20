@@ -30,23 +30,20 @@ function whyNotAvailable(shift) {
   return "";
 }
 
-// One card per open shift, with an Accept button when I can take it.
+// One ticket per open shift, with an Accept button when I can take it.
 function makeCard(shift) {
-  const card = makeElement("article", "card mt-3");
-  card.append(makeElement("h3", "card-title", formatDayName(parseDate(shift.shift_date))));
-  card.append(makeElement("p", "card-description",
-    `${shift.start_time} to ${shift.end_time} - ${shift.position}`));
+  const { ticket, body } = makeTicket(shift);
   if (shift.assigned_name) {
-    card.append(makeElement("p", "text-muted", `Offered by ${shift.assigned_name}`));
+    body.append(makeElement("p", "text-muted", `Offered by ${shift.assigned_name}`));
   }
   if (shift.offered_to === myId) {
-    card.append(makeElement("span", "status status-pending", "Offered to you"));
+    body.append(makeElement("span", "status status-pending", "Offered to you"));
   }
 
   const reason = whyNotAvailable(shift);
   if (reason) {
-    card.append(makeElement("p", "text-muted mt-3", reason));
-    return card;
+    body.append(makeElement("p", "text-muted", reason));
+    return ticket;
   }
 
   const actions = makeElement("div", "card-actions");
@@ -66,8 +63,8 @@ function makeCard(shift) {
     }
   });
   actions.append(button);
-  card.append(actions);
-  return card;
+  body.append(actions);
+  return ticket;
 }
 
 function filtersAreUsed() {
