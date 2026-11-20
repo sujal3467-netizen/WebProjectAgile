@@ -23,6 +23,25 @@ deno task reset-db       # wipes the database and reloads the test data
 deno task check-access   # (server running, fresh data) tests who can call every route
 ```
 
+### Large test data (Sprint 3, SS-59)
+
+```bash
+deno task seed-large     # normal demo data + 80 extra employees + about a year of shifts
+deno task reset-db       # back to the small demo data
+```
+
+`seed-large` keeps every demo account and this week's demo shifts exactly as in `seed.sql`, then adds about **10,700 shifts** and **1,160 swap requests** around them (six months back, six months ahead, swaps in every state). It then measures our filtered lists **with and without indexes** and prints SQLite's plan for each.
+
+Measured on 10,720 shifts (average of 200 runs):
+
+| List | Without indexes | With indexes | SQLite's plan |
+|---|---|---|---|
+| Tom's shifts, next 30 days | 0.41 ms | 0.06 ms | `USING INDEX idx_shifts_assigned` |
+| Open shifts from today | 0.54 ms | 0.04 ms | `USING INDEX idx_shifts_status` |
+| One week of the rota | 0.48 ms | 0.02 ms | `USING INDEX idx_shifts_date` |
+
+Through the real API, a filtered, paged list on this data comes back in about 4 ms. The indexes are at the end of `server/schema.sql`. There is deliberately **no** index on `swap_requests.status`: measured, it made the query slower, because each status matches a large share of a small table.
+
 > **After pulling a change to `server/schema.sql`, run `deno task reset-db`.** SQLite can't change a table's rules in place, so the database must be rebuilt. (Week 4: swap requests can now be `cancelled`.)
 
 - Laptop: open http://localhost:8000 (use Chrome phone view: F12 → phone icon).
