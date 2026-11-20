@@ -174,14 +174,11 @@ function openCancelPanel(card, swap) {
   });
 }
 
-// ----- One card per swap -----
+// ----- One ticket per swap -----
 function makeCard(swap) {
-  const card = makeElement("article", "card mt-3");
-  card.append(makeElement("h3", "card-title", formatDayName(parseDate(swap.shift_date))));
-  card.append(makeElement("p", "card-description",
-    `${swap.start_time} to ${swap.end_time} - ${swap.position}`));
-  card.append(makeElement("p", "text-muted", describe(swap)));
-  card.append(makeElement("span", `status ${STATUS_CLASS[swap.status] || ""}`, swap.status));
+  const { ticket, body } = makeTicket(swap);
+  body.append(makeElement("p", "text-muted", describe(swap)));
+  body.append(makeElement("span", `status ${STATUS_CLASS[swap.status] || ""}`, swap.status));
 
   // Buttons only on MY requests that can still be changed.
   const mine = swap.from_user_id === myId;
@@ -193,18 +190,18 @@ function makeCard(swap) {
     if (canEdit) {
       const edit = makeElement("button", "btn btn-secondary", "Edit");
       edit.type = "button";
-      edit.addEventListener("click", () => openEditPanel(card, swap));
+      edit.addEventListener("click", () => openEditPanel(body, swap));
       actions.append(edit);
     }
     if (canCancel) {
       const cancel = makeElement("button", "btn btn-danger", "Cancel");
       cancel.type = "button";
-      cancel.addEventListener("click", () => openCancelPanel(card, swap));
+      cancel.addEventListener("click", () => openCancelPanel(body, swap));
       actions.append(cancel);
     }
-    card.append(actions);
+    body.append(actions);
   }
-  return card;
+  return ticket;
 }
 
 function filtersAreUsed() {

@@ -1,11 +1,304 @@
 /* =============================================================
-   employee.css – extra styles for the Employee App (Masrur, SS-64)
-   Loaded AFTER Bikram's /css/style.css. It only adds what the
-   employee pages need and uses ONLY his colour variables, so the
-   style guide (SS-63) stays the one place that decides the look.
+   employee.css – the Employee App look (Masrur)
+   Loaded AFTER Bikram's /css/style.css, on the employee pages and
+   the login page only. The manager pages never load this file, so
+   they keep the shared look.
+
+   The idea: a shift is a time-clock ticket. The coloured stub on
+   the left shows the date AND the position, so colour carries
+   meaning. Everything else stays quiet.
+
+   To change the whole look, change the values in :root below.
    ============================================================= */
 
-/* Messages under the page title (replaces inline colours) */
+:root {
+  /* Workwear palette */
+  --navy: #15233b;            /* uniform navy: header, headings */
+  --marigold: #f5b316;        /* clock-in yellow: the main action */
+  --marigold-dark: #dd9d05;
+  --paper: #e9eef3;           /* page background */
+
+  /* Position colours (stub of the ticket) */
+  --pos-barista: #9a5b2b;     /* coffee */
+  --pos-cashier: #0e7c86;     /* teal */
+  --pos-stock: #6d4bc3;       /* violet */
+  --pos-default: #536379;     /* any other position */
+
+  /* Override Bikram's variables so shared rules follow this palette */
+  --primary: #2152d9;         /* links and focus ring */
+  --primary-dark: #173fb0;
+  --success: #0b8f63;
+  --danger: #c0283a;
+  --warning: #b7791f;
+  --background: var(--paper);
+  --surface: #ffffff;
+  --text: var(--navy);
+  --text-muted: #53647b;
+  --border: #d3dbe5;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --shadow: 0 1px 0 rgba(21, 35, 59, 0.06), 0 8px 18px -10px rgba(21, 35, 59, 0.35);
+  --shadow-hover: var(--shadow);
+
+  /* Industrial display face (on Windows), plain fallbacks elsewhere */
+  --font-display: "Bahnschrift", "DIN Alternate", "Roboto Condensed", "Segoe UI", system-ui, sans-serif;
+}
+
+/* ---------- Type ---------- */
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-stretch: 85%;
+  letter-spacing: 0.005em;
+  color: var(--navy);
+}
+
+h1 {
+  font-size: 36px;
+  font-weight: 700;
+}
+
+/* ---------- Header bar ---------- */
+
+.navbar {
+  background: var(--navy);
+  border-bottom: 4px solid var(--marigold);
+  color: #ffffff;
+}
+
+.navbar strong {
+  font-family: var(--font-display);
+  font-stretch: 85%;
+  font-size: 22px;
+  letter-spacing: 0.01em;
+}
+
+.navbar strong::before {
+  content: "\21C4";            /* two arrows: a swap */
+  margin-right: 8px;
+  color: var(--marigold);
+}
+
+.nav-links a {
+  color: #c4d0e2;
+  font-weight: 600;
+  padding: 6px 2px;
+}
+
+.nav-links a:hover {
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.nav-links a[aria-current="page"] {
+  color: #ffffff;
+  box-shadow: inset 0 -3px 0 var(--marigold);
+}
+
+.navbar .btn-secondary {
+  background: transparent;
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.55);
+}
+
+.navbar .btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: #ffffff;
+}
+
+/* ---------- Buttons ---------- */
+
+.btn {
+  font-weight: 700;
+  border-radius: var(--radius-sm);
+}
+
+.btn-primary {
+  background: var(--marigold);
+  color: var(--navy);
+  border-color: var(--marigold);
+  box-shadow: none;
+}
+
+.btn-primary:hover {
+  background: var(--marigold-dark);
+  border-color: var(--marigold-dark);
+  color: var(--navy);
+  text-decoration: none;
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--navy);
+  border: 2px solid var(--navy);
+}
+
+.btn-secondary:hover {
+  background: var(--navy);
+  color: #ffffff;
+  border-color: var(--navy);
+}
+
+/* ---------- Forms ---------- */
+
+input,
+select,
+textarea {
+  border: 2px solid #c3cddb;
+  border-radius: var(--radius-sm);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--navy);
+}
+
+label {
+  color: var(--navy);
+}
+
+/* ---------- The ticket ---------- */
+
+.ticket {
+  --ticket-color: var(--pos-default);
+  display: grid;
+  grid-template-columns: 78px 1fr;
+  margin-top: var(--space-3);
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow);
+}
+
+.ticket[data-position="barista"] { --ticket-color: var(--pos-barista); }
+.ticket[data-position="cashier"] { --ticket-color: var(--pos-cashier); }
+.ticket[data-position="stock"]   { --ticket-color: var(--pos-stock); }
+
+/* Left stub: weekday, big day number, month */
+.ticket-stub {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: var(--space-3) var(--space-2);
+  background: var(--ticket-color);
+  color: #ffffff;
+  border-radius: var(--radius-md) 0 0 var(--radius-md);
+  line-height: 1.15;
+}
+
+.stub-weekday,
+.stub-month {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.stub-day {
+  font-family: var(--font-display);
+  font-stretch: 85%;
+  font-size: 34px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Right side: the perforated edge, then the details */
+.ticket-body {
+  position: relative;
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
+  border-left: 2px dashed #c3cddb;
+  min-width: 0;
+}
+
+/* The two notches punched out of the ticket (same colour as the page) */
+.ticket-body::before,
+.ticket-body::after {
+  content: "";
+  position: absolute;
+  left: -9px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--paper);
+}
+
+.ticket-body::before { top: -8px; }
+.ticket-body::after { bottom: -8px; }
+
+.ticket-time {
+  margin: 0;
+  font-family: var(--font-display);
+  font-stretch: 85%;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+  color: var(--navy);
+}
+
+.ticket-position {
+  margin: 2px 0 var(--space-2);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ticket-color);
+}
+
+.ticket-body p {
+  font-size: 15px;
+}
+
+.ticket-body .status {
+  margin-right: var(--space-2);
+}
+
+/* Week headings with a rule that carries on to the edge */
+#shifts-list h2 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: var(--space-4) 0 0;
+  font-size: 18px;
+  color: var(--text-muted);
+}
+
+#shifts-list h2::after {
+  content: "";
+  flex: 1;
+  height: 2px;
+  background: var(--border);
+}
+
+/* ---------- Status badges: outlined, with a dot ---------- */
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 700;
+  border: 1.5px solid currentColor;
+}
+
+.status::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.status-pending   { background: #fff4d6; color: #7a5200; }
+.status-approved  { background: #d9f3e8; color: #0a6a49; }
+.status-rejected  { background: #fbdde0; color: #98202f; }
+.status-open,
+.status-accepted  { background: #dfe8ff; color: #1b3fa8; }
+.status-cancelled { background: #e4e9f0; color: #44546a; }
+
+/* ---------- Messages ---------- */
+
 .error-text {
   color: var(--danger);
   font-weight: 600;
@@ -16,42 +309,36 @@
   font-weight: 600;
 }
 
-/* A narrow page, for the login and Request Swap forms */
+/* ---------- Layout helpers ---------- */
+
+.container {
+  max-width: 880px;
+}
+
 .container-narrow {
   max-width: 520px;
 }
 
-/* Status badges the shared file does not have yet */
-.status-accepted {
-  background: #dbeafe;
-  color: #1d4ed8;
-}
-
-.status-cancelled {
-  background: #f1f5f9;
-  color: #475569;
-}
-
-/* Filter bar above a list */
+/* The filter bar is a plain panel, not a ticket */
 .filter-bar {
   margin-bottom: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: none;
+}
+
+.filter-bar:hover {
+  box-shadow: none;
 }
 
 .filter-bar .form-group:last-child {
   margin-bottom: 0;
 }
 
-/* The form-groups already have their own bottom space */
 .filter-bar .grid {
   row-gap: 0;
 }
 
-/* "23 shifts" under the list */
-#result-count {
-  margin-top: var(--space-4);
-}
-
-/* Checkbox + its text on one line (inputs are 100% wide by default) */
 .check-label {
   display: flex;
   align-items: center;
@@ -65,7 +352,10 @@
   margin: 0;
 }
 
-/* Previous / Page X of Y / Next */
+#result-count {
+  margin-top: var(--space-4);
+}
+
 .pager {
   display: flex;
   justify-content: space-between;
@@ -74,7 +364,6 @@
   margin-top: var(--space-4);
 }
 
-/* Buttons under a card (Edit, Cancel, Accept) */
 .card-actions {
   display: flex;
   flex-wrap: wrap;
@@ -82,14 +371,57 @@
   margin-top: var(--space-3);
 }
 
-/* The small panel that opens inside a card for Edit or Cancel */
 .card-panel {
   margin-top: var(--space-3);
   padding-top: var(--space-3);
   border-top: 1px solid var(--border);
 }
 
+/* ---------- Login page ---------- */
+
+body:has(#login-form) {
+  background: var(--navy);
+}
+
+body:has(#login-form) h1 {
+  color: #ffffff;
+  font-size: 44px;
+  margin-top: var(--space-5);
+}
+
+body:has(#login-form) h1::before {
+  content: "\21C4";
+  margin-right: 10px;
+  color: var(--marigold);
+}
+
+body:has(#login-form) .text-muted {
+  color: #aab9d0;
+}
+
+body:has(#login-form) .card {
+  border-top: 4px solid var(--marigold);
+}
+
+/* ---------- Small screens ---------- */
+
 @media (max-width: 600px) {
+  h1 {
+    font-size: 32px;
+  }
+
+  .ticket {
+    grid-template-columns: 68px 1fr;
+  }
+
+  .ticket-body {
+    padding: var(--space-3);
+  }
+
+  .ticket-time {
+    font-size: 26px;
+  }
+
   .pager {
     flex-wrap: wrap;
     justify-content: center;
