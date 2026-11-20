@@ -1,31 +1,24 @@
 // =============================================================
-// shifts.js – the My Shifts page (owner: Masrur, Jira SS-42)
-// Needs Sujal's /js/api.js to be loaded first.
+// shifts.js – the My Shifts page (owner: Masrur, Jira SS-42, SS-60)
+// SS-60: filter bar and paging. The filters go to the server:
+//   GET /api/shifts/mine?from=&to=&position=&include_past=&page=&limit=
+// Needs /js/api.js and /employee/js/common.js to be loaded first.
 // =============================================================
 
-// Find the parts of the page we need, using the ids in shifts.html.
+const PAGE_SIZE = 10;
+let currentPage = 1;
+
+// The parts of the page we need, using the ids in shifts.html.
 const listBox = document.getElementById("shifts-list");
 const loadingMessage = document.getElementById("loading-message");
 const errorMessage = document.getElementById("shifts-error");
 const greeting = document.getElementById("greeting");
-const logoutButton = document.getElementById("logout-button");
-
-// Make one HTML element with an optional class and text.
-// We use textContent (not innerHTML) so text from the database can
-// never be run as code.
-function makeElement(tag, className, text) {
-  const element = document.createElement(tag);
-  if (className) element.className = className;
-  if (text !== undefined) element.textContent = text;
-  return element;
-}
-
-// "2026-11-09" -> a Date at midnight on that day.
-// (new Date("2026-11-09") uses UTC and can show the wrong day.)
-function parseDate(dateText) {
-  const [year, month, day] = dateText.split("-").map(Number);
-  return new Date(year, month - 1, day);
-}
+const filterForm = document.getElementById("filter-form");
+const fromInput = document.getElementById("filter-from");
+const toInput = document.getElementById("filter-to");
+const positionInput = document.getElementById("filter-position");
+const pastCheckbox = document.getElementById("filter-past");
+const clearButton = document.getElementById("clear-button");
 
 // The Monday of the week a date is in. Shifts in the same week
 // share the same Monday, so we use it to group them.
@@ -36,24 +29,12 @@ function mondayOf(date) {
   return monday;
 }
 
-// A text key for a date, like "2026-11-09", to use as a group name.
-function dateKey(date) {
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${date.getFullYear()}-${month}-${day}`;
-}
-
 // "9 Nov"
 function formatShortDate(date) {
   return date.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 }
 
-// "Mon, 9 Nov"
-function formatDayName(date) {
-  return date.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
-}
-
-// Sort shifts by date then start time, then put them into groups by week.
+// Sort the shifts on this page, then put them into groups by week.
 // Returns a list like: [{ monday: Date, shifts: [...] }, ...]
 function groupByWeek(shifts) {
   const sorted = [...shifts].sort((a, b) =>
@@ -63,7 +44,7 @@ function groupByWeek(shifts) {
   const groups = new Map();   // a Map remembers the order we add things
   for (const shift of sorted) {
     const monday = mondayOf(parseDate(shift.shift_date));
-    const key = dateKey(monday);
+    const key = toDateText(monday);
     if (!groups.has(key)) {
       groups.set(key, { monday: monday, shifts: [] });
     }
@@ -83,15 +64,27 @@ function makeShiftCard(shift) {
   if (shift.status === "open") {
     card.append(makeElement("span", "status status-open", "Offered for swap"));
   }
+  // Only shows when "Show past shifts" is ticked.
+  if (shift.shift_date < toDateText(new Date())) {
+    card.append(makeElement("span", "status status-cancelled", "Past shift"));
+  }
   return card;
 }
 
-// Draw all the shifts on the page, grouped by week.
+// Has the user typed or ticked any filter?
+function filtersAreUsed() {
+  return Boolean(fromInput.value || toInput.value || positionInput.value.trim() || pastCheckbox.checked);
+}
+
+// Draw the shifts of this page, grouped by week.
 function showShifts(shifts) {
   listBox.replaceChildren();   // empty the box first
 
   if (shifts.length === 0) {
-    listBox.append(makeElement("p", "text-muted", "You have no upcoming shifts."));
+    const text = filtersAreUsed()
+      ? "No shifts match your filters. Try different dates or clear the filters."
+      : "You have no upcoming shifts.";
+    listBox.append(makeElement("p", "text-muted", text));
     return;
   }
 
@@ -103,40 +96,71 @@ function showShifts(shifts) {
   }
 }
 
-// Show a red error message.
-function showError(text) {
-  errorMessage.textContent = text;
-  errorMessage.classList.remove("hidden");
-}
-
-// Runs when the page opens: get who I am, then my shifts.
-async function loadPage() {
+// Ask the server for the current page with the current filters.
+async function loadShifts() {
+  loadingMessage.classList.remove("hidden");
+  setMessage(errorMessage, "");
   try {
-    const me = await api.get("/api/me");
-    const user = me.user || me;
-    if (user.name) greeting.textContent = `Hello, ${user.name}`;
+    // Only the filters that are filled in are sent (see makeQuery).
+    const query = makeQuery({
+      from: fromInput.value,
+      to: toInput.value,
+      position: positionInput.value.trim(),
+      include_past: pastCheckbox.checked ? "true" : "",
+      page: currentPage,
+      limit: PAGE_SIZE,
+    });
+    const result = await api.get("/api/shifts/mine?" + query);
 
-    const data = await api.get("/api/shifts/mine");
-    // The route may send a plain list or { shifts: [...] }. Handle both.
-    const shifts = Array.isArray(data) ? data : data.shifts;
-    showShifts(shifts || []);
+    // We were on a page that no longer exists (e.g. after a change): go to the last one.
+    if (result.items.length === 0 && currentPage > 1) {
+      currentPage = result.pages;
+      return loadShifts();
+    }
 
+    showShifts(result.items);
+    showPager(result, "shift");
   } catch (error) {
     // If we are not logged in, api.js already sends us to the login page.
-    showError(error.message);
+    listBox.replaceChildren();
+    hidePager();
+    setMessage(errorMessage, error.message);   // e.g. "from must be before to"
   } finally {
     loadingMessage.classList.add("hidden");   // stop showing "Loading..."
   }
 }
 
-// Log out button: tell the server, then go back to the login page.
-logoutButton.addEventListener("click", async () => {
-  try {
-    await api.post("/api/logout");
-  } catch (error) {
-    // Ignore: we leave the page either way.
-  }
-  window.location.href = "/";
+// Apply filters: always start again at page 1.
+filterForm.addEventListener("submit", (event) => {
+  event.preventDefault();      // stop the page reloading
+  currentPage = 1;
+  loadShifts();
 });
 
-loadPage();
+// Clear: empty every filter and show everything again.
+clearButton.addEventListener("click", () => {
+  filterForm.reset();
+  currentPage = 1;
+  loadShifts();
+});
+
+// Previous / Next: change=-1 or +1.
+wirePager((change) => {
+  currentPage += change;
+  loadShifts();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+});
+
+// Runs when the page opens: get who I am, then my shifts.
+async function startPage() {
+  try {
+    const me = await api.get("/api/me");
+    const user = me.user || me;
+    if (user.name) greeting.textContent = `Hello, ${user.name}`;
+  } catch (error) {
+    // api.js sends us to the login page if we are not logged in.
+  }
+  loadShifts();
+}
+
+startPage();

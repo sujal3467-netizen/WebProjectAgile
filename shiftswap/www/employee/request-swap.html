@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ShiftSwap - Offer a Shift</title>
   <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/employee.css">
 </head>
 <body>
   <nav class="navbar">
@@ -17,14 +18,14 @@
     </div>
   </nav>
 
-  <main class="container" style="max-width: 520px;">
+  <main class="container container-narrow">
     <div class="page-header">
       <h1>Request Swap</h1>
     </div>
 
     <p id="loading-message" class="text-muted">Loading your shifts...</p>
-    <p id="swap-error" class="hidden" style="color: var(--danger);"></p>
-    <p id="swap-success" class="hidden" style="color: var(--success);"></p>
+    <p id="swap-error" class="error-text hidden"></p>
+    <p id="swap-success" class="success-text hidden"></p>
 
     <form id="swap-form" class="hidden">
       <div class="form-group">

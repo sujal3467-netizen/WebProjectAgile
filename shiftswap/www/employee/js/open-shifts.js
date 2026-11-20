@@ -1,46 +1,36 @@
 // =============================================================
-// open-shifts.js – Open Shifts page (owner: Masrur, Jira SS-51)
-// Uses: GET /api/me, GET /api/shifts/open, POST /api/swaps/:id/accept
-// Needs /js/api.js to be loaded first.
+// open-shifts.js – Open Shifts page (owner: Masrur, Jira SS-51, SS-60)
+// SS-60: filter bar and paging. Uses:
+//   GET /api/me
+//   GET /api/shifts/open?from=&to=&position=&page=&limit=
+//   POST /api/swaps/:id/accept
+// Needs /js/api.js and /employee/js/common.js to be loaded first.
 // =============================================================
+
+const PAGE_SIZE = 10;
+let currentPage = 1;
+let myId = null;   // set in startPage
 
 const listBox = document.getElementById("open-list");
 const loadingMessage = document.getElementById("loading-message");
 const errorMessage = document.getElementById("open-error");
 const successMessage = document.getElementById("open-success");
-const logoutButton = document.getElementById("logout-button");
+const filterForm = document.getElementById("filter-form");
+const fromInput = document.getElementById("filter-from");
+const toInput = document.getElementById("filter-to");
+const positionInput = document.getElementById("filter-position");
+const clearButton = document.getElementById("clear-button");
 
-let myId = null;   // set in loadPage
-
-function makeElement(tag, className, text) {
-  const element = document.createElement(tag);
-  if (className) element.className = className;
-  if (text !== undefined) element.textContent = text;
-  return element;
+// Why can't I accept this shift? Returns a short reason, or "" if I can.
+// (We show these shifts too, so the page counts and pages match the server.)
+function whyNotAvailable(shift) {
+  if (shift.assigned_to === myId) return "This is your own shift";
+  if (shift.swap_id === null || shift.swap_id === undefined) return "Waiting for your manager to assign it";
+  if (shift.offered_to !== null && shift.offered_to !== myId) return "Offered to a colleague";
+  return "";
 }
 
-function parseDate(dateText) {
-  const [year, month, day] = dateText.split("-").map(Number);
-  return new Date(year, month - 1, day);
-}
-
-function formatDayName(date) {
-  return date.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
-}
-
-function showError(text) {
-  successMessage.classList.add("hidden");
-  errorMessage.textContent = text;
-  errorMessage.classList.remove("hidden");
-}
-
-function showSuccess(text) {
-  errorMessage.classList.add("hidden");
-  successMessage.textContent = text;
-  successMessage.classList.remove("hidden");
-}
-
-// One card per open shift, with an Accept button.
+// One card per open shift, with an Accept button when I can take it.
 function makeCard(shift) {
   const card = makeElement("article", "card mt-3");
   card.append(makeElement("h3", "card-title", formatDayName(parseDate(shift.shift_date))));
@@ -53,66 +43,103 @@ function makeCard(shift) {
     card.append(makeElement("span", "status status-pending", "Offered to you"));
   }
 
-  const button = makeElement("button", "btn btn-success mt-3", "Accept");
+  const reason = whyNotAvailable(shift);
+  if (reason) {
+    card.append(makeElement("p", "text-muted mt-3", reason));
+    return card;
+  }
+
+  const actions = makeElement("div", "card-actions");
+  const button = makeElement("button", "btn btn-success", "Accept");
   button.type = "button";
   button.addEventListener("click", async () => {
-    button.disabled = true;
+    button.disabled = true;               // stop double clicks
+    setMessage(errorMessage, "");
     try {
       await api.post(`/api/swaps/${shift.swap_id}/accept`);
-      showSuccess("Shift accepted. It now waits for your manager to approve it.");
-      await loadShifts();               // the shift disappears from the list
+      await loadShifts();                 // the shift disappears from the list
+      setMessage(successMessage, "Shift accepted. It now waits for your manager to approve it.");
     } catch (error) {
-      showError(error.message);
+      setMessage(successMessage, "");
+      setMessage(errorMessage, error.message);
       button.disabled = false;
     }
   });
-  card.append(button);
+  actions.append(button);
+  card.append(actions);
   return card;
 }
 
-async function loadShifts() {
-  try {
-    const data = await api.get("/api/shifts/open");
-    const shifts = (Array.isArray(data) ? data : data.shifts) || [];
-
-    // Keep only shifts I can really take:
-    //  - it has a swap request to accept (swap_id)
-    //  - it is not my own shift
-    //  - it is not offered to somebody else
-    const available = shifts
-      .filter((shift) => shift.swap_id !== null && shift.swap_id !== undefined)
-      .filter((shift) => shift.assigned_to !== myId)
-      .filter((shift) => shift.offered_to === null || shift.offered_to === myId)
-      .sort((a, b) => (a.shift_date + a.start_time).localeCompare(b.shift_date + b.start_time));
-
-    listBox.replaceChildren();
-    if (available.length === 0) {
-      listBox.append(makeElement("p", "text-muted", "There are no open shifts right now."));
-      return;
-    }
-    for (const shift of available) {
-      listBox.append(makeCard(shift));
-    }
-  } catch (error) {
-    showError(error.message);
-  }
+function filtersAreUsed() {
+  return Boolean(fromInput.value || toInput.value || positionInput.value.trim());
 }
 
-async function loadPage() {
+async function loadShifts() {
+  loadingMessage.classList.remove("hidden");
   try {
-    const me = await api.get("/api/me");
-    myId = (me.user || me).id;
-    await loadShifts();
+    const query = makeQuery({
+      from: fromInput.value,
+      to: toInput.value,
+      position: positionInput.value.trim(),
+      page: currentPage,
+      limit: PAGE_SIZE,
+    });
+    const result = await api.get("/api/shifts/open?" + query);
+
+    if (result.items.length === 0 && currentPage > 1) {
+      currentPage = result.pages;
+      return loadShifts();
+    }
+
+    listBox.replaceChildren();
+    if (result.items.length === 0) {
+      const text = filtersAreUsed()
+        ? "No open shifts match your filters. Try different dates or clear the filters."
+        : "There are no open shifts right now.";
+      listBox.append(makeElement("p", "text-muted", text));
+    }
+    for (const shift of result.items) {
+      listBox.append(makeCard(shift));
+    }
+    showPager(result, "open shift");
   } catch (error) {
-    showError(error.message);
+    listBox.replaceChildren();
+    hidePager();
+    setMessage(errorMessage, error.message);
   } finally {
     loadingMessage.classList.add("hidden");
   }
 }
 
-logoutButton.addEventListener("click", async () => {
-  try { await api.post("/api/logout"); } catch (error) { /* leave anyway */ }
-  window.location.href = "/";
+filterForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  currentPage = 1;
+  setMessage(errorMessage, "");
+  setMessage(successMessage, "");
+  loadShifts();
 });
 
-loadPage();
+clearButton.addEventListener("click", () => {
+  filterForm.reset();
+  currentPage = 1;
+  setMessage(errorMessage, "");
+  loadShifts();
+});
+
+wirePager((change) => {
+  currentPage += change;
+  loadShifts();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+});
+
+async function startPage() {
+  try {
+    const me = await api.get("/api/me");
+    myId = (me.user || me).id;
+  } catch (error) {
+    setMessage(errorMessage, error.message);
+  }
+  loadShifts();
+}
+
+startPage();

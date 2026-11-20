@@ -1,0 +1,101 @@
+/* =============================================================
+   employee.css – extra styles for the Employee App (Masrur, SS-64)
+   Loaded AFTER Bikram's /css/style.css. It only adds what the
+   employee pages need and uses ONLY his colour variables, so the
+   style guide (SS-63) stays the one place that decides the look.
+   ============================================================= */
+
+/* Messages under the page title (replaces inline colours) */
+.error-text {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.success-text {
+  color: var(--success);
+  font-weight: 600;
+}
+
+/* A narrow page, for the login and Request Swap forms */
+.container-narrow {
+  max-width: 520px;
+}
+
+/* Status badges the shared file does not have yet */
+.status-accepted {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.status-cancelled {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+/* Filter bar above a list */
+.filter-bar {
+  margin-bottom: var(--space-4);
+}
+
+.filter-bar .form-group:last-child {
+  margin-bottom: 0;
+}
+
+/* The form-groups already have their own bottom space */
+.filter-bar .grid {
+  row-gap: 0;
+}
+
+/* "23 shifts" under the list */
+#result-count {
+  margin-top: var(--space-4);
+}
+
+/* Checkbox + its text on one line (inputs are 100% wide by default) */
+.check-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 400;
+}
+
+.check-label input {
+  width: auto;
+  min-height: 0;
+  margin: 0;
+}
+
+/* Previous / Page X of Y / Next */
+.pager {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+/* Buttons under a card (Edit, Cancel, Accept) */
+.card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+/* The small panel that opens inside a card for Edit or Cancel */
+.card-panel {
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
+}
+
+@media (max-width: 600px) {
+  .pager {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .pager .btn {
+    flex: 1 1 40%;
+  }
+}
