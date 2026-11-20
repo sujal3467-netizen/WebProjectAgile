@@ -2,6 +2,7 @@
   "tasks": {
     "start": "deno run --allow-net --allow-read --allow-write server/server.js",
     "reset-db": "deno run --allow-read --allow-write server/reset-db.js",
-    "check-access": "deno run --allow-net server/check-access.js"
+    "check-access": "deno run --allow-net server/check-access.js",
+    "seed-large": "deno run --allow-read --allow-write server/seed-large.js"
   }
 }

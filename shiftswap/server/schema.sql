@@ -63,3 +63,23 @@ CREATE TABLE sessions (
   user_id    INTEGER NOT NULL REFERENCES users(id),
   created_at TEXT    NOT NULL DEFAULT (datetime('now'))
 );
+
+-- =============================================================
+-- Indexes (Week 4) – SS-59
+-- An index is like the index at the back of a book: SQLite can jump
+-- straight to the matching rows instead of reading the whole table.
+-- Each one matches a filter that our routes use a lot. Without them,
+-- every filtered list reads every shift – fine for 10 shifts, slow
+-- for thousands.
+-- NOT indexed: swap_requests.status. Measured with deno task seed-large,
+-- an index there was SLOWER: a status matches a big share of a small
+-- table, so reading it straight through beats jumping via an index.
+-- =============================================================
+CREATE INDEX idx_shifts_date        ON shifts (shift_date);            -- from / to, week, today onwards
+CREATE INDEX idx_shifts_assigned    ON shifts (assigned_to, shift_date); -- "my shifts", in date order
+CREATE INDEX idx_shifts_status      ON shifts (status, shift_date);    -- open shifts
+CREATE INDEX idx_swaps_shift        ON swap_requests (shift_id, status); -- active swap for a shift (BR8)
+CREATE INDEX idx_swaps_from         ON swap_requests (from_user_id);   -- my swaps: given
+CREATE INDEX idx_swaps_to           ON swap_requests (to_user_id);     -- my swaps: taken
+CREATE INDEX idx_notifications_user ON notifications (user_id, is_read); -- my bell page / unread count
+CREATE INDEX idx_sessions_user      ON sessions (user_id);
