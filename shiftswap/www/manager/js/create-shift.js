@@ -40,7 +40,7 @@ async function loadShiftToEdit() {
     return;
   }
 
-  document.querySelector(".top-bar h1").textContent = "Edit Shift";
+  document.querySelector(".page-header h1").textContent = "Edit Shift";
   document.title = "Edit Shift – ShiftSwap Manager";
   saveButton.textContent = "Save changes";
 

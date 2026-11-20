@@ -184,12 +184,28 @@ function sortShifts(shifts) {
 // ---------- 3. Data functions used by the pages ----------
 
 // GET /api/shifts/week?start=YYYY-MM-DD  (start = a Monday)
-async function getWeekShifts(start) {
-  if (REAL.shifts) return api.get("/api/shifts/week?start=" + start);
+// Optional filters (SS-62), done ON THE SERVER by Sujal's SS-57 route,
+// so the page stays fast even with lots of shifts:
+//   { employee: 3, position: "bar", status: "open" }
+async function getWeekShifts(start, filters = {}) {
+  if (REAL.shifts) {
+    const params = new URLSearchParams({ start: start });
+    if (filters.employee) params.set("employee", filters.employee);
+    if (filters.position) params.set("position", filters.position);
+    if (filters.status) params.set("status", filters.status);
+    return api.get("/api/shifts/week?" + params);
+  }
 
+  // Sample data: filter the same way the server does
   const data = loadSample();
   const end = addDays(start, 6);
-  const week = data.shifts.filter((s) => s.shift_date >= start && s.shift_date <= end);
+  let week = data.shifts.filter((s) => s.shift_date >= start && s.shift_date <= end);
+  if (filters.employee) week = week.filter((s) => s.assigned_to === Number(filters.employee));
+  if (filters.position) {
+    const text = filters.position.toLowerCase();
+    week = week.filter((s) => s.position.toLowerCase().includes(text));
+  }
+  if (filters.status) week = week.filter((s) => s.status === filters.status);
   return sortShifts(addNames(week, data.staff));
 }
 

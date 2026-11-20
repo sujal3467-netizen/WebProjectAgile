@@ -9,24 +9,27 @@
   <link rel="stylesheet" href="/manager/manager.css" />
 </head>
 <body>
-  <!-- Top bar: page title and the notifications bell (Bikram's page) -->
-  <header class="top-bar">
-    <h1>Weekly Rota</h1>
-    <div class="top-bar-actions">
-      <a href="/notifications.html" title="Notifications">🔔</a>
+  <!-- Navbar: the same layout as the employee pages, from Bikram's style guide (SS-65) -->
+  <nav class="navbar">
+    <strong>ShiftSwap <span class="nav-role">Manager</span></strong>
+    <div class="nav-links">
+      <a href="/manager/dashboard.html">Dashboard</a>
+      <a href="/manager/rota.html" class="active" aria-current="page">Rota</a>
+      <a href="/manager/swaps.html">Approvals</a>
+      <a href="/manager/staff.html">Staff</a>
+      <a href="/notifications.html" title="Notifications" aria-label="Notifications">🔔</a>
       <button id="logout-button" class="btn btn-secondary" type="button">Log out</button>
     </div>
-  </header>
-
-  <!-- Manager tabs: phone = bottom bar, laptop = under the header -->
-  <nav class="tab-bar">
-    <a href="dashboard.html"><span>🏠</span>Dashboard</a>
-    <a href="rota.html" class="active"><span>📅</span>Rota</a>
-    <a href="swaps.html"><span>✅</span>Approvals</a>
-    <a href="staff.html"><span>👥</span>Staff</a>
   </nav>
 
-  <main class="page">
+  <main class="container">
+    <div class="page-header">
+      <div>
+        <h1>Weekly Rota</h1>
+        <p class="text-muted">Every shift from Monday to Sunday</p>
+      </div>
+      <div class="flex no-print"><button id="print-button" class="btn btn-secondary" type="button">Print</button><a href="create-shift.html" class="btn btn-primary">+ Create shift</a></div>
+    </div>
     <div id="message" hidden></div>
 
     <!-- Move between weeks -->
@@ -36,10 +39,36 @@
       <button id="next-week" class="btn btn-secondary btn-small no-print">Next ▶</button>
     </div>
 
-    <div class="btn-group no-print" style="margin-bottom:12px">
-      <a href="create-shift.html" class="btn btn-primary" style="flex:1">+ Create shift</a>
-      <button id="print-button" class="btn btn-secondary">🖨 Print</button>
-    </div>
+    <!-- Filter bar (SS-62). The choices are sent to the server (SS-57),
+         so the rota stays fast even when there are lots of shifts. -->
+    <form id="filter-form" class="card filter-bar no-print">
+      <div class="grid grid-3">
+        <div class="form-group">
+          <label for="filter-employee">Employee</label>
+          <select id="filter-employee">
+            <option value="">All employees</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="filter-position">Position</label>
+          <input id="filter-position" type="text" placeholder="e.g. Barista" maxlength="50" />
+        </div>
+        <div class="form-group">
+          <label for="filter-status">Status</label>
+          <select id="filter-status">
+            <option value="">All shifts</option>
+            <option value="assigned">Assigned</option>
+            <option value="open">Open or up for swap</option>
+          </select>
+        </div>
+      </div>
+      <div class="flex">
+        <button class="btn btn-primary" type="submit">Apply filters</button>
+        <button id="clear-button" class="btn btn-secondary" type="button">Clear</button>
+      </div>
+    </form>
+
+    <p id="result-count" class="text-muted"></p>
 
     <!-- One section per day, filled in by rota.js -->
     <div id="rota"><p class="loading">Loading…</p></div>
